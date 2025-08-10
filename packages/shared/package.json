@@ -1,0 +1,10 @@
+{
+  "name": "@messenger/shared",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "echo \"shared: noop\"",
+    "lint": "echo \"shared: noop\"",
+    "typecheck": "echo \"shared: noop\""
+  }
+}

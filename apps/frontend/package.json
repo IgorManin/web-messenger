@@ -1,0 +1,10 @@
+{
+  "name": "@messenger/frontend",
+  "private": true,
+  "scripts": {
+    "dev": "echo \"frontend: dev not ready yet\"",
+    "build": "echo \"frontend: noop\"",
+    "lint": "echo \"frontend: noop\"",
+    "typecheck": "echo \"frontend: noop\""
+  }
+}

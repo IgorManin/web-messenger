@@ -1,0 +1,6 @@
+
+
+> @messenger/backend@ build /Users/igormanin/WebstormProjects/web-messenger/apps/backend
+> echo "backend: noop"
+
+backend: noop
