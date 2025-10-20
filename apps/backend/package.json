@@ -1,10 +1,35 @@
 {
   "name": "@messenger/backend",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "echo \"backend: dev not ready yet\"",
-    "build": "echo \"backend: noop\"",
-    "lint": "echo \"backend: noop\"",
-    "typecheck": "echo \"backend: noop\""
+    "dev": "nest start --watch",
+    "build": "nest build",
+    "start:prod": "node dist/main.js",
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.1.6",
+    "@nestjs/core": "^11.1.6",
+    "@nestjs/platform-express": "^11.1.6",
+    "@nestjs/platform-socket.io": "^11.1.6",
+    "@nestjs/websockets": "^11.1.6",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.10",
+    "@nestjs/schematics": "^11.0.9",
+    "@nestjs/testing": "^11.1.6",
+    "@types/node": "^20.19.11",
+    "eslint": "^9.38.0",
+    "eslint-config-prettier": "^10.1.8",
+    "typescript": "^5.9.2"
   }
 }
