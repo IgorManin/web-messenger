@@ -1,6 +1,5 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-// путь зависит от того, что мы указали в output в schema.prisma
-import { PrismaClient } from '../generated/prisma/client.js';
+import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg';
 import 'dotenv/config';
 import pg from 'pg';
