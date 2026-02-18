@@ -1,11 +1,11 @@
-export const metadata = { title: "Messenger" };
+import { Providers } from './providers'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
-        <html lang="ru">
-        <body style={{ fontFamily: "system-ui, sans-serif", padding: 24 }}>
-        {children}
+        <html lang='ru'>
+        <body>
+        <Providers>{children}</Providers>
         </body>
         </html>
-    );
+    )
 }
