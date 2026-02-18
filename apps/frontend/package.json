@@ -8,14 +8,19 @@
     "start": "next start"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/material": "^7.3.8",
+    "@tanstack/react-query": "^5.90.21",
     "next": "15.0.0",
     "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "react-dom": "18.3.1",
+    "zustand": "^5.0.11"
   },
   "devDependencies": {
-    "typescript": "^5.4.0",
     "@types/node": "^20.11.0",
     "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0"
+    "@types/react-dom": "^18.2.0",
+    "typescript": "^5.4.0"
   }
 }
