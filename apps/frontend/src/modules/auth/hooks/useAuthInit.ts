@@ -23,7 +23,7 @@ export const useAuthInit = () => {
             }
         }
 
-        run().then(r => cancelled = true)
+        void run()
 
         return () => {
             cancelled = true

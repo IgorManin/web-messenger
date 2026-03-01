@@ -22,7 +22,9 @@ export const connectSocket = (token: string) => {
     if (socket) {
         try {
             socket.disconnect()
-        } catch {}
+        } catch {
+            /* ignore disconnect errors */
+        }
         socket = null
     }
 
@@ -46,7 +48,9 @@ export const disconnectSocket = () => {
     if (!socket) return
     try {
         socket.disconnect()
-    } catch {}
+    } catch {
+        /* ignore disconnect errors */
+    }
     socket = null
     currentToken = null
 }
