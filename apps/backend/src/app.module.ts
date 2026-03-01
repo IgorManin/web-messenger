@@ -3,6 +3,7 @@ import {HealthModule} from "./health.module.js";
 import {MessagesModule} from "./messages.module.js";
 import {PrismaModule} from "./prisma/prisma.module.js";
 import {AuthModule} from "./auth/auth.module.js";
+import {WsModule} from "./ws/ws.module.js";
 
-@Module({ imports: [PrismaModule, HealthModule, MessagesModule,AuthModule]})
+@Module({ imports: [PrismaModule, HealthModule, MessagesModule,AuthModule, WsModule]})
 export class AppModule {}
