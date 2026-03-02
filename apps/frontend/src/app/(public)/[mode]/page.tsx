@@ -1,3 +1,5 @@
+'use client'
+
 import {AuthForm} from "../../../modules/auth/ui/LoginForm";
 import { useParams} from "next/navigation";
 
