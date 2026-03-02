@@ -1,10 +1,11 @@
 'use client'
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { useState } from 'react'
-import {useAuthInit} from "../modules/auth/hooks/useAuthInit";
+import  {ReactNode, useState} from 'react'
+import { useAuthInit } from '../modules/auth/hooks/useAuthInit'
+import { WsProvider } from '../modules/ws'
 
-export function Providers({ children }: { children: React.ReactNode }) {
+export function Providers({ children }: { children: ReactNode }) {
     const [client] = useState(
         () =>
             new QueryClient({
@@ -19,7 +20,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
                 },
             }),
     )
+
     useAuthInit()
 
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    return (
+        <QueryClientProvider client={client}>
+            <WsProvider>{children}</WsProvider>
+        </QueryClientProvider>
+    )
 }

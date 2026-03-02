@@ -1,5 +1,5 @@
 
-import {apiClient} from "../../../shared/api/apiClient";
+import {apiClient} from "../../../../shared/api/apiClient";
 import {AuthTokensResponse, LoginDto} from "../types";
 
 export const authApi = {

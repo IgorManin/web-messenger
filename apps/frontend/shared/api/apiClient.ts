@@ -1,4 +1,4 @@
-import {useAuthStore} from "../../modules/auth/store/auth.store";
+import {useAuthStore} from "../../src/modules/auth/store/auth.store";
 
 type HttpOptions = Omit<RequestInit, 'headers'> & {
     headers?: Record<string, string>
