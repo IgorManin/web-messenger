@@ -1,16 +1,11 @@
 import {AuthForm} from "../../../modules/auth/ui/LoginForm";
-import {notFound} from "next/navigation";
+import { useParams} from "next/navigation";
 
-type PageProps = {
-    params: { mode: string }
-}
+type AuthMode = 'login' | 'register'
 
-export default async function AuthPage({ params }: PageProps) {
-    const { mode } = await params
+export default function Page() {
+    const params = useParams<{ mode: string }>()
+    const mode = params?.mode === 'register' ? 'register' : 'login'
 
-    if (mode !== 'login' && mode !== 'register') {
-        notFound()
-    }
-
-    return <AuthForm mode={mode} />
+    return <AuthForm mode={mode as AuthMode} />
 }
