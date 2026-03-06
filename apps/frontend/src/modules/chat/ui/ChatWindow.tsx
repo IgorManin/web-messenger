@@ -1,7 +1,14 @@
 "use client";
 
 import { Box, Button, Paper, TextField, Typography } from "@mui/material";
-import { FormEvent, useCallback, useMemo, useState } from "react";
+import {
+  FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { MessageDto, useWsMessages } from "@/modules/ws";
 import { ChatItem } from "@/modules/chat/model/types";
 
@@ -9,16 +16,24 @@ interface ChatWindowProps {
   chat: ChatItem | null;
   myUserId: string | null;
   messages: MessageDto[];
+  typingText?: string | null;
   onAppendMessage: (chatId: string, message: MessageDto) => void;
+  onTypingChange: (
+    chatId: string,
+    payload: { userId: string; isTyping: boolean },
+  ) => void;
 }
 
 export function ChatWindow({
   chat,
   myUserId,
   messages,
+  typingText,
   onAppendMessage,
+  onTypingChange,
 }: ChatWindowProps) {
   const [text, setText] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const currentChatId = chat?.id ?? "";
 
@@ -30,9 +45,23 @@ export function ChatWindow({
     [onAppendMessage],
   );
 
-  const { sendMessage } = useWsMessages({
+  const onTyping = useCallback(
+    (payload: { chatId: string; userId: string; isTyping: boolean }) => {
+      if (!payload.chatId) return;
+      if (payload.userId === myUserId) return;
+
+      onTypingChange(payload.chatId, {
+        userId: payload.userId,
+        isTyping: payload.isTyping,
+      });
+    },
+    [myUserId, onTypingChange],
+  );
+
+  const { sendMessage, notifyTyping, sendTyping } = useWsMessages({
     chatId: currentChatId,
     onMessage,
+    onTyping,
   });
 
   const canSend = useMemo(() => {
@@ -41,13 +70,15 @@ export function ChatWindow({
 
   const handleSend = useCallback(async () => {
     const value = text.trim();
+
     if (!value || !chat) return;
 
     const ack = await sendMessage(value);
 
     onAppendMessage(chat.id, ack);
+    sendTyping(false);
     setText("");
-  }, [text, chat, sendMessage, onAppendMessage]);
+  }, [text, chat, sendMessage, onAppendMessage, sendTyping]);
 
   const handleSubmit = useCallback(
     async (e: FormEvent) => {
@@ -56,6 +87,13 @@ export function ChatWindow({
     },
     [handleSend],
   );
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "end",
+    });
+  }, [messages, currentChatId]);
 
   if (!chat) {
     return (
@@ -93,9 +131,16 @@ export function ChatWindow({
       >
         <Box>
           <Typography variant="h6">{chat.title}</Typography>
-          <Typography variant="caption" color="text.secondary">
-            chatId: {chat.id}
-          </Typography>
+
+          {typingText ? (
+            <Typography variant="caption" color="primary">
+              {typingText}
+            </Typography>
+          ) : (
+            <Typography variant="caption" color="text.secondary">
+              chatId: {chat.id}
+            </Typography>
+          )}
         </Box>
       </Paper>
 
@@ -146,6 +191,8 @@ export function ChatWindow({
             );
           })
         )}
+
+        <Box ref={messagesEndRef} />
       </Paper>
 
       <Box
@@ -155,7 +202,14 @@ export function ChatWindow({
       >
         <TextField
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => {
+            setText(e.target.value);
+            if (e.target.value.trim()) {
+              notifyTyping();
+            } else {
+              sendTyping(false);
+            }
+          }}
           placeholder="Напиши сообщение..."
           size="small"
           autoComplete="off"
