@@ -1,27 +1,48 @@
 export type ChatJoinDto = {
-    chatId: string
-}
+  chatId: string;
+};
 
 export type SendMessageDto = {
-    chatId: string
-    text: string
-    clientMessageId?: string
-}
+  chatId: string;
+  text: string;
+  clientMessageId?: string;
+};
+
+export type TypingUpdateDto = {
+  chatId: string;
+  isTyping: boolean;
+};
 
 export type MessageDto = {
-    id: string
-    chatId: string
-    text: string
-    authorId: string
-    createdAt: string
-    clientMessageId: string | null
-}
+  id: string;
+  chatId: string;
+  text: string;
+  authorId: string;
+  createdAt: string;
+  clientMessageId: string | null;
+};
+
+export type TypingEventDto = {
+  chatId: string;
+  userId: string;
+  isTyping: boolean;
+};
 
 export type ServerToClientEvents = {
-    'message:new': (message: MessageDto) => void
-}
+  "message:new": (message: MessageDto) => void;
+  "typing:update": (payload: TypingEventDto) => void;
+};
 
-export type ClientToServerEvents = {
-    'chat:join': (dto: ChatJoinDto, ack?: (res: { ok: boolean }) => void) => void
-    'message:new': (dto: SendMessageDto, ack?: (message: MessageDto) => void) => void
+export interface ClientToServerEvents {
+  "chat:join": (
+    payload: ChatJoinDto,
+    cb: (response: { ok?: boolean }) => void,
+  ) => void;
+
+  "message:new": (
+    payload: SendMessageDto & { clientMessageId: string },
+    cb: (message: MessageDto) => void,
+  ) => void;
+
+  "typing:update": (payload: TypingUpdateDto) => void;
 }
