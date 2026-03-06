@@ -1,117 +1,69 @@
-'use client'
-
-import {FormEvent, useCallback, useMemo, useState} from 'react'
-import { Box, Button, Paper, TextField, Typography } from '@mui/material'
-import {useAuthStore} from "../../../modules/auth/store/auth.store";
-import {MessageDto, useWsMessages} from "../../../modules/ws";
-
-const CHAT_ID = 'global' // todo MVP: один общий чат. Потом заменим на реальные чаты.
+"use client";
+import { mockChats, mockMessagesByChat } from "@/modules/chat/model/mock";
+import { useAuthStore } from "@/modules/auth/store/auth.store";
+import { MessagesByChat } from "@/modules/chat/model/types";
+import { ChatSidebar } from "@/modules/chat/ui/ChatSidebar";
+import { ChatWindow } from "@/modules/chat/ui/ChatWindow";
+import { useCallback, useMemo, useState } from "react";
+import { MessageDto } from "@/modules/ws";
+import { Box } from "@mui/material";
 
 export default function ChatPage() {
-    const myUserId = useAuthStore((s) => {
-        return (s as unknown as { userId?: string }).userId ?? null
-    })
+  const myUserId = useAuthStore((s) => {
+    return (s as unknown as { userId?: string }).userId ?? null;
+  });
 
-    const [text, setText] = useState('')
-    const [messages, setMessages] = useState<MessageDto[]>([])
+  const [search, setSearch] = useState("");
+  const [activeChatId, setActiveChatId] = useState("global");
+  const [messagesByChat, setMessagesByChat] =
+    useState<MessagesByChat>(mockMessagesByChat);
 
-    const onMessage = useCallback((message: MessageDto) => {
-        setMessages((prev) => [...prev, message])
-    }, [])
+  const activeChat = useMemo(() => {
+    return mockChats.find((chat) => chat.id === activeChatId) ?? null;
+  }, [activeChatId]);
 
-    const { sendMessage } = useWsMessages({ chatId: CHAT_ID, onMessage })
+  const activeMessages = useMemo(() => {
+    return messagesByChat[activeChatId] ?? [];
+  }, [messagesByChat, activeChatId]);
 
-    const canSend = useMemo(() => text.trim().length > 0, [text])
+  const handleAppendMessage = useCallback(
+    (chatId: string, message: MessageDto) => {
+      setMessagesByChat((prev) => {
+        const chatMessages = prev[chatId] ?? [];
 
-    const handleSend = useCallback(async () => {
-        const value = text.trim()
-        if (!value) return
+        return {
+          ...prev,
+          [chatId]: [...chatMessages, message],
+        };
+      });
+    },
+    [],
+  );
 
-        const ack = await sendMessage(value)
+  return (
+    <Box
+      sx={{
+        p: 2,
+        height: "100vh",
+        display: "grid",
+        gridTemplateColumns: "320px 1fr",
+        gap: 2,
+      }}
+    >
+      <ChatSidebar
+        chats={mockChats}
+        activeChatId={activeChatId}
+        search={search}
+        onSearchChange={setSearch}
+        onSelectChat={setActiveChatId}
+      />
 
-        setMessages((prev) => [...prev, ack])
-
-        setText('')
-    }, [sendMessage, text])
-
-    const handleSubmit = useCallback(
-        async (e: FormEvent) => {
-            e.preventDefault()
-            await handleSend()
-        },
-        [handleSend],
-    )
-
-    return (
-        <Box sx={{ p: 2, display: 'grid', gap: 2, height: 'calc(100vh - 32px)' }}>
-            <Typography variant="h5">Чат</Typography>
-
-            <Paper
-                variant="outlined"
-                sx={{
-                    p: 2,
-                    flex: 1,
-                    overflow: 'auto',
-                    display: 'grid',
-                    gap: 1,
-                    alignContent: 'start',
-                }}
-            >
-                {messages.length === 0 ? (
-                    <Typography variant="body2" color="text.secondary">
-                        Пока сообщений нет
-                    </Typography>
-                ) : (
-                    messages.map((m) => {
-                        const isMine = myUserId ? m.authorId === myUserId : false
-
-                        return (
-                            <Box
-                                key={m.id}
-                                sx={{
-                                    display: 'grid',
-                                    justifyContent: isMine ? 'end' : 'start',
-                                }}
-                            >
-                                <Box
-                                    sx={{
-                                        px: 1.5,
-                                        py: 1,
-                                        borderRadius: 2,
-                                        maxWidth: 520,
-                                        border: '1px solid',
-                                        borderColor: 'divider',
-                                    }}
-                                >
-                                    <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
-                                        {m.text}
-                                    </Typography>
-                                    <Typography variant="caption" color="text.secondary">
-                                        {new Date(m.createdAt).toLocaleTimeString()}
-                                    </Typography>
-                                </Box>
-                            </Box>
-                        )
-                    })
-                )}
-            </Paper>
-
-            <Box component="form" onSubmit={handleSubmit} sx={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 1 }}>
-                <TextField
-                    value={text}
-                    onChange={(e) => setText(e.target.value)}
-                    placeholder="Напиши сообщение…"
-                    size="small"
-                    autoComplete="off"
-                />
-                <Button type="submit" variant="contained" disabled={!canSend}>
-                    Отправить
-                </Button>
-            </Box>
-
-            <Typography variant="caption" color="text.secondary">
-                chatId: {CHAT_ID}
-            </Typography>
-        </Box>
-    )
+      <ChatWindow
+        chat={activeChat}
+        myUserId={myUserId}
+        messages={activeMessages}
+        onAppendMessage={handleAppendMessage}
+      />
+    </Box>
+  );
 }

@@ -1,8 +1,8 @@
+import { useAuthStore } from "@/modules/auth/store/auth.store";
+import { authApi } from "@/modules/auth/api/auth.api";
 import { useMutation } from "@tanstack/react-query";
+import { LoginDto } from "@/modules/auth/types";
 import { useRouter } from "next/navigation";
-import { LoginDto } from "../types";
-import { authApi } from "../api/auth.api";
-import { useAuthStore } from "../store/auth.store";
 
 export const useAuthActions = () => {
   const router = useRouter();
