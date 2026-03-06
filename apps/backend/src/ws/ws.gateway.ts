@@ -7,8 +7,9 @@ import {
   OnGatewayDisconnect,
 } from "@nestjs/websockets";
 import { JwtService } from "@nestjs/jwt";
-import { Logger } from "@nestjs/common";
+import { ForbiddenException, Logger, NotFoundException } from "@nestjs/common";
 import type { Socket } from "socket.io";
+import { PrismaService } from "../prisma/prisma.service.js";
 
 type JwtPayload = {
   sub: string;
@@ -43,7 +44,10 @@ type TypingUpdateDto = {
 export class WsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private readonly logger = new Logger(WsGateway.name);
 
-  constructor(private readonly jwt: JwtService) {}
+  constructor(
+    private readonly jwt: JwtService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   handleConnection(client: Socket) {
     try {
@@ -80,7 +84,13 @@ export class WsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ) {
     this.ensureAuth(client);
+
+    const user = client.data.user as { id: string; login?: string };
+
+    await this.ensureChatAccess(dto.chatId, Number(user.id));
+
     await client.join(`chat:${dto.chatId}`);
+
     return { ok: true };
   }
 
@@ -92,14 +102,65 @@ export class WsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.ensureAuth(client);
 
     const user = client.data.user as { id: string; login?: string };
+    const userId = Number(user.id);
+    const text = dto.text.trim();
+
+    if (!text) {
+      throw new Error("Message text is empty");
+    }
+
+    await this.ensureChatAccess(dto.chatId, userId);
+
+    if (dto.clientMessageId) {
+      const existingMessage = await this.prisma.message.findFirst({
+        where: {
+          chatId: dto.chatId,
+          clientMessageId: dto.clientMessageId,
+          authorId: userId,
+        },
+      });
+
+      if (existingMessage) {
+        const mappedExistingMessage = {
+          id: existingMessage.id,
+          clientMessageId: existingMessage.clientMessageId ?? "",
+          chatId: existingMessage.chatId,
+          authorId: String(existingMessage.authorId),
+          text: existingMessage.text,
+          createdAt: existingMessage.createdAt.toISOString(),
+        };
+
+        client
+          .to(`chat:${dto.chatId}`)
+          .emit("message:new", mappedExistingMessage);
+
+        return mappedExistingMessage;
+      }
+    }
+
+    const createdMessage = await this.prisma.message.create({
+      data: {
+        chatId: dto.chatId,
+        authorId: userId,
+        text,
+        clientMessageId: dto.clientMessageId ?? null,
+      },
+    });
+
+    await this.prisma.chat.update({
+      where: { id: dto.chatId },
+      data: {
+        updatedAt: createdMessage.createdAt,
+      },
+    });
 
     const message = {
-      id: globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`,
-      chatId: dto.chatId,
-      text: dto.text,
-      authorId: user.id,
-      createdAt: new Date().toISOString(),
-      clientMessageId: dto.clientMessageId ?? null,
+      id: createdMessage.id,
+      clientMessageId: createdMessage.clientMessageId ?? "",
+      chatId: createdMessage.chatId,
+      authorId: String(createdMessage.authorId),
+      text: createdMessage.text,
+      createdAt: createdMessage.createdAt.toISOString(),
     };
 
     client.to(`chat:${dto.chatId}`).emit("message:new", message);
@@ -115,6 +176,8 @@ export class WsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.ensureAuth(client);
 
     const user = client.data.user as { id: string; login?: string };
+
+    await this.ensureChatAccess(dto.chatId, Number(user.id));
 
     client.to(`chat:${dto.chatId}`).emit("typing:update", {
       chatId: dto.chatId,
@@ -136,5 +199,29 @@ export class WsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.disconnect(true);
       throw new Error("Unauthorized");
     }
+  }
+
+  private async ensureChatAccess(chatId: string, userId: number) {
+    const participant = await this.prisma.chatParticipant.findUnique({
+      where: {
+        chatId_userId: {
+          chatId,
+          userId,
+        },
+      },
+    });
+
+    if (participant) return;
+
+    const chat = await this.prisma.chat.findUnique({
+      where: { id: chatId },
+      select: { id: true },
+    });
+
+    if (!chat) {
+      throw new NotFoundException("Чат не найден");
+    }
+
+    throw new ForbiddenException("Нет доступа к этому чату");
   }
 }
