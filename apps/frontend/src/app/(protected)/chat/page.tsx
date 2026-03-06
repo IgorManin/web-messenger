@@ -1,16 +1,12 @@
 "use client";
-
+import { mockChats, mockMessagesByChat } from "@/modules/chat/model/mock";
+import { useAuthStore } from "@/modules/auth/store/auth.store";
+import { MessagesByChat } from "@/modules/chat/model/types";
+import { ChatSidebar } from "@/modules/chat/ui/ChatSidebar";
+import { ChatWindow } from "@/modules/chat/ui/ChatWindow";
 import { useCallback, useMemo, useState } from "react";
+import { MessageDto } from "@/modules/ws";
 import { Box } from "@mui/material";
-import { useAuthStore } from "../../../modules/auth/store/auth.store";
-import { MessagesByChat } from "../../../modules/chat/model/types";
-import {
-  mockChats,
-  mockMessagesByChat,
-} from "../../../modules/chat/model/mock";
-import { MessageDto } from "../../../modules/ws";
-import { ChatSidebar } from "../../../modules/chat/ui/ChatSidebar";
-import { ChatWindow } from "../../../modules/chat/ui/ChatWindow";
 
 export default function ChatPage() {
   const myUserId = useAuthStore((s) => {

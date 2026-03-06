@@ -1,9 +1,9 @@
-'use client'
+"use client";
 
-import type { PropsWithChildren } from 'react'
-import { useWsConnection } from '../hooks/useWsConnection'
+import { useWsConnection } from "@/modules/ws/hooks/useWsConnection";
+import type { PropsWithChildren } from "react";
 
 export function WsProvider({ children }: PropsWithChildren) {
-    useWsConnection()
-    return children
+  useWsConnection();
+  return children;
 }

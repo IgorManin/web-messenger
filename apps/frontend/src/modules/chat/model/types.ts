@@ -1,4 +1,4 @@
-import { MessageDto } from "../../ws";
+import { MessageDto } from "@/modules/ws";
 
 export type ChatType = "direct" | "group";
 

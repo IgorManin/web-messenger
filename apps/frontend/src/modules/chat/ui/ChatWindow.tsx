@@ -1,9 +1,9 @@
 "use client";
 
-import { FormEvent, useCallback, useMemo, useState } from "react";
 import { Box, Button, Paper, TextField, Typography } from "@mui/material";
-import { ChatItem } from "../model/types";
-import { MessageDto, useWsMessages } from "../../ws";
+import { FormEvent, useCallback, useMemo, useState } from "react";
+import { MessageDto, useWsMessages } from "@/modules/ws";
+import { ChatItem } from "@/modules/chat/model/types";
 
 interface ChatWindowProps {
   chat: ChatItem | null;

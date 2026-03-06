@@ -10,7 +10,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { ChatItem } from "../model/types";
+import { ChatItem } from "@/modules/chat/model/types";
 
 interface ChatSidebarProps {
   chats: ChatItem[];
