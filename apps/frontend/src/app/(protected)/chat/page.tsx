@@ -1,13 +1,13 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Box } from "@mui/material";
 import { ChatSidebar } from "@/modules/chat/ui/ChatSidebar";
 import { ChatWindow } from "@/modules/chat/ui/ChatWindow";
-import { mockChats, mockMessagesByChat } from "@/modules/chat/model/mock";
 import { ChatItem, MessagesByChat } from "@/modules/chat/model/types";
 import { MessageDto } from "@/modules/ws";
 import { useAuthStore } from "@/modules/auth/store/auth.store";
+import { getChatMessages, getChats } from "@/modules/chat/api/chat.api";
 
 const sortChatsByUpdatedAt = (chats: ChatItem[]) => {
   return [...chats].sort((a, b) => {
@@ -15,24 +15,85 @@ const sortChatsByUpdatedAt = (chats: ChatItem[]) => {
   });
 };
 
-const initialChats = sortChatsByUpdatedAt(mockChats);
+const getMyUserIdFromToken = (token: string | null): string | null => {
+  if (!token) return null;
+
+  try {
+    const payloadBase64 = token.split(".")[1];
+    if (!payloadBase64) return null;
+
+    const normalized = payloadBase64.replace(/-/g, "+").replace(/_/g, "/");
+    const payloadJson = atob(normalized);
+    const payload = JSON.parse(payloadJson) as { sub?: number | string };
+
+    if (payload.sub === undefined || payload.sub === null) return null;
+
+    return String(payload.sub);
+  } catch {
+    return null;
+  }
+};
 
 export default function ChatPage() {
-  const myUserId = useAuthStore((state) => {
-    return state.accessToken ? "me" : null;
-  });
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const myUserId = useMemo(() => {
+    return getMyUserIdFromToken(accessToken);
+  }, [accessToken]);
 
   const [search, setSearch] = useState("");
-  const [chats, setChats] = useState<ChatItem[]>(initialChats);
-  const [messagesByChat, setMessagesByChat] =
-    useState<MessagesByChat>(mockMessagesByChat);
+  const [chats, setChats] = useState<ChatItem[]>([]);
+  const [messagesByChat, setMessagesByChat] = useState<MessagesByChat>({});
+  const [loadedChats, setLoadedChats] = useState<Record<string, boolean>>({});
   const [unreadByChat, setUnreadByChat] = useState<Record<string, number>>({});
   const [typingByChat, setTypingByChat] = useState<
     Record<string, string | null>
   >({});
-  const [activeChatId, setActiveChatId] = useState<string>(
-    initialChats[0]?.id ?? "",
-  );
+  const [activeChatId, setActiveChatId] = useState<string>("");
+
+  useEffect(() => {
+    const loadChats = async () => {
+      try {
+        const data = await getChats();
+        const sortedChats = sortChatsByUpdatedAt(data);
+
+        setChats(sortedChats);
+
+        setActiveChatId((prev) => {
+          if (prev) return prev;
+          return sortedChats[0]?.id ?? "";
+        });
+      } catch (error) {
+        console.error("Ошибка загрузки чатов", error);
+      }
+    };
+
+    void loadChats();
+  }, []);
+
+  useEffect(() => {
+    if (!activeChatId) return;
+    if (loadedChats[activeChatId]) return;
+
+    const loadMessages = async () => {
+      try {
+        const messages = await getChatMessages(activeChatId);
+
+        setMessagesByChat((prev) => ({
+          ...prev,
+          [activeChatId]: messages,
+        }));
+
+        setLoadedChats((prev) => ({
+          ...prev,
+          [activeChatId]: true,
+        }));
+      } catch (error) {
+        console.error("Ошибка загрузки сообщений", error);
+      }
+    };
+
+    void loadMessages();
+  }, [activeChatId, loadedChats]);
 
   const activeChat = useMemo(() => {
     return chats.find((chat) => chat.id === activeChatId) ?? null;
@@ -97,12 +158,23 @@ export default function ChatPage() {
 
       if (!shouldAppend) return;
 
+      setLoadedChats((prev) => ({
+        ...prev,
+        [chatId]: true,
+      }));
+
       setTypingByChat((prev) => ({
         ...prev,
         [chatId]: null,
       }));
 
       setChats((prev) => {
+        const existingChat = prev.find((chat) => chat.id === chatId);
+
+        if (!existingChat) {
+          return prev;
+        }
+
         const nextChats = prev.map((chat) => {
           if (chat.id !== chatId) return chat;
 
