@@ -1,5 +1,6 @@
 import {
   WebSocketGateway,
+  WebSocketServer,
   SubscribeMessage,
   MessageBody,
   ConnectedSocket,
@@ -8,7 +9,7 @@ import {
 } from "@nestjs/websockets";
 import { JwtService } from "@nestjs/jwt";
 import { ForbiddenException, Logger, NotFoundException } from "@nestjs/common";
-import type { Socket } from "socket.io";
+import type { Server, Socket } from "socket.io";
 import { PrismaService } from "../prisma/prisma.service.js";
 
 type JwtPayload = {
@@ -33,6 +34,18 @@ type TypingUpdateDto = {
   isTyping: boolean;
 };
 
+type ChatNewPayload = {
+  id: string;
+  title: string;
+  type: string;
+  lastMessage: string;
+  updatedAt: string;
+  companion: {
+    id: number;
+    login: string;
+  } | null;
+};
+
 @WebSocketGateway({
   namespace: "/ws",
   cors: {
@@ -42,6 +55,9 @@ type TypingUpdateDto = {
   },
 })
 export class WsGateway implements OnGatewayConnection, OnGatewayDisconnect {
+  @WebSocketServer()
+  server!: Server;
+
   private readonly logger = new Logger(WsGateway.name);
 
   constructor(
@@ -76,6 +92,10 @@ export class WsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.logger.log(
       `WS disconnected: socket=${client.id}, user=${userId ?? "unknown"}`,
     );
+  }
+
+  notifyChatCreated(userId: number, chat: ChatNewPayload) {
+    this.server.to(`user:${userId}`).emit("chat:new", chat);
   }
 
   @SubscribeMessage("chat:join")
@@ -138,6 +158,14 @@ export class WsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
     }
 
+    const existingMessagesCount = await this.prisma.message.count({
+      where: {
+        chatId: dto.chatId,
+      },
+    });
+
+    const isFirstMessage = existingMessagesCount === 0;
+
     const createdMessage = await this.prisma.message.create({
       data: {
         chatId: dto.chatId,
@@ -153,6 +181,31 @@ export class WsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         updatedAt: createdMessage.createdAt,
       },
     });
+
+    const chatWithParticipants = await this.prisma.chat.findUnique({
+      where: { id: dto.chatId },
+      select: {
+        type: true,
+        participants: {
+          select: {
+            userId: true,
+          },
+        },
+      },
+    });
+
+    if (isFirstMessage && chatWithParticipants?.type === "direct") {
+      for (const participant of chatWithParticipants.participants) {
+        const chatPayload = await this.buildChatListItem(
+          dto.chatId,
+          participant.userId,
+        );
+
+        this.server
+          .to(`user:${participant.userId}`)
+          .emit("chat:new", chatPayload);
+      }
+    }
 
     const message = {
       id: createdMessage.id,
@@ -223,5 +276,57 @@ export class WsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     throw new ForbiddenException("Нет доступа к этому чату");
+  }
+
+  private async buildChatListItem(
+    chatId: string,
+    currentUserId: number,
+  ): Promise<ChatNewPayload> {
+    const chat = await this.prisma.chat.findUnique({
+      where: {
+        id: chatId,
+      },
+      include: {
+        messages: {
+          orderBy: {
+            createdAt: "desc",
+          },
+          take: 1,
+        },
+        participants: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                login: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!chat) {
+      throw new NotFoundException("Чат не найден");
+    }
+
+    const lastMessage = chat.messages[0] ?? null;
+
+    const companion =
+      chat.type === "direct"
+        ? (chat.participants.find(
+            (participant) => participant.userId !== currentUserId,
+          )?.user ?? null)
+        : null;
+
+    return {
+      id: chat.id,
+      title:
+        chat.type === "direct" ? (companion?.login ?? chat.title) : chat.title,
+      type: chat.type,
+      lastMessage: lastMessage?.text ?? "",
+      updatedAt: (lastMessage?.createdAt ?? chat.updatedAt).toISOString(),
+      companion,
+    };
   }
 }

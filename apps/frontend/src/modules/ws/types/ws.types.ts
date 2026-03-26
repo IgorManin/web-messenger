@@ -1,3 +1,5 @@
+import { ChatItem } from "@/modules/chat/model/types";
+
 export type ChatJoinDto = {
   chatId: string;
 };
@@ -31,6 +33,7 @@ export type TypingEventDto = {
 export type ServerToClientEvents = {
   "message:new": (message: MessageDto) => void;
   "typing:update": (payload: TypingEventDto) => void;
+  "chat:new": (chat: ChatItem) => void;
 };
 
 export interface ClientToServerEvents {
