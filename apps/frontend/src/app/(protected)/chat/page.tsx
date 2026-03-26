@@ -4,10 +4,19 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Box } from "@mui/material";
 import { ChatSidebar } from "@/modules/chat/ui/ChatSidebar";
 import { ChatWindow } from "@/modules/chat/ui/ChatWindow";
-import { ChatItem, MessagesByChat } from "@/modules/chat/model/types";
+import {
+  ChatCompanion,
+  ChatItem,
+  MessagesByChat,
+} from "@/modules/chat/model/types";
 import { MessageDto } from "@/modules/ws";
 import { useAuthStore } from "@/modules/auth/store/auth.store";
-import { getChatMessages, getChats } from "@/modules/chat/api/chat.api";
+import {
+  createOrGetDirectChat,
+  getChatMessages,
+  getChats,
+  searchUsersByLogin,
+} from "@/modules/chat/api/chat.api";
 
 const sortChatsByUpdatedAt = (chats: ChatItem[]) => {
   return [...chats].sort((a, b) => {
@@ -36,11 +45,13 @@ const getMyUserIdFromToken = (token: string | null): string | null => {
 
 export default function ChatPage() {
   const accessToken = useAuthStore((state) => state.accessToken);
+
   const myUserId = useMemo(() => {
     return getMyUserIdFromToken(accessToken);
   }, [accessToken]);
 
   const [search, setSearch] = useState("");
+  const [foundUsers, setFoundUsers] = useState<ChatCompanion[]>([]);
   const [chats, setChats] = useState<ChatItem[]>([]);
   const [messagesByChat, setMessagesByChat] = useState<MessagesByChat>({});
   const [loadedChats, setLoadedChats] = useState<Record<string, boolean>>({});
@@ -69,6 +80,29 @@ export default function ChatPage() {
 
     void loadChats();
   }, []);
+
+  useEffect(() => {
+    const trimmedSearch = search.trim();
+
+    if (!trimmedSearch) {
+      setFoundUsers([]);
+      return;
+    }
+
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        const users = await searchUsersByLogin(trimmedSearch);
+        setFoundUsers(users);
+      } catch (error) {
+        console.error("Ошибка поиска пользователей", error);
+        setFoundUsers([]);
+      }
+    }, 300);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [search]);
 
   useEffect(() => {
     if (!activeChatId) return;
@@ -118,6 +152,33 @@ export default function ChatPage() {
         [chatId]: 0,
       };
     });
+  }, []);
+
+  const handleSelectUser = useCallback(async (userId: number) => {
+    try {
+      const directChat = await createOrGetDirectChat(userId);
+
+      setChats((prev) => {
+        const existingChat = prev.find((chat) => chat.id === directChat.id);
+
+        if (existingChat) {
+          const updatedChats = prev.map((chat) => {
+            if (chat.id !== directChat.id) return chat;
+            return directChat;
+          });
+
+          return sortChatsByUpdatedAt(updatedChats);
+        }
+
+        return sortChatsByUpdatedAt([directChat, ...prev]);
+      });
+
+      setActiveChatId(directChat.id);
+      setSearch("");
+      setFoundUsers([]);
+    } catch (error) {
+      console.error("Ошибка открытия direct-чата", error);
+    }
   }, []);
 
   const onTypingChange = useCallback(
@@ -175,7 +236,7 @@ export default function ChatPage() {
           return prev;
         }
 
-        const nextChats = prev.map((chat) => {
+        const updatedChats = prev.map((chat) => {
           if (chat.id !== chatId) return chat;
 
           return {
@@ -185,7 +246,7 @@ export default function ChatPage() {
           };
         });
 
-        return sortChatsByUpdatedAt(nextChats);
+        return sortChatsByUpdatedAt(updatedChats);
       });
 
       const isIncomingForInactiveChat =
@@ -213,11 +274,13 @@ export default function ChatPage() {
     >
       <ChatSidebar
         chats={chats}
+        foundUsers={foundUsers}
         unreadByChat={unreadByChat}
         activeChatId={activeChatId}
         search={search}
         onSearchChange={setSearch}
         onSelectChat={handleSelectChat}
+        onSelectUser={handleSelectUser}
       />
 
       <ChatWindow

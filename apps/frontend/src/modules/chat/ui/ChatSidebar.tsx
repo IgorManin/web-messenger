@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useMemo } from "react";
+import { ChangeEvent } from "react";
 import {
   Badge,
   Box,
@@ -11,15 +11,17 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { ChatItem } from "@/modules/chat/model/types";
+import { ChatCompanion, ChatItem } from "@/modules/chat/model/types";
 
 interface ChatSidebarProps {
   chats: ChatItem[];
+  foundUsers: ChatCompanion[];
   unreadByChat: Record<string, number>;
   activeChatId: string;
   search: string;
   onSearchChange: (value: string) => void;
   onSelectChat: (chatId: string) => void;
+  onSelectUser: (userId: number) => void;
 }
 
 const formatChatTime = (dateString: string) => {
@@ -46,21 +48,16 @@ const formatChatTime = (dateString: string) => {
 
 export function ChatSidebar({
   chats,
+  foundUsers,
   unreadByChat,
   activeChatId,
   search,
   onSearchChange,
   onSelectChat,
+  onSelectUser,
 }: ChatSidebarProps) {
-  const filteredChats = useMemo(() => {
-    const value = search.trim().toLowerCase();
-
-    if (!value) return chats;
-
-    return chats.filter((chat) => {
-      return chat.title.toLowerCase().includes(value);
-    });
-  }, [chats, search]);
+  const trimmedSearch = search.trim();
+  const isSearchMode = trimmedSearch.length > 0;
 
   const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
     onSearchChange(e.target.value);
@@ -84,14 +81,46 @@ export function ChatSidebar({
         <TextField
           fullWidth
           size="small"
-          placeholder="Поиск чатов..."
+          placeholder="Поиск пользователей..."
           value={search}
           onChange={handleSearchChange}
         />
       </Box>
 
       <Box sx={{ overflow: "auto" }}>
-        {filteredChats.length === 0 ? (
+        {isSearchMode ? (
+          foundUsers.length === 0 ? (
+            <Box sx={{ p: 2 }}>
+              <Typography variant="body2" color="text.secondary">
+                Пользователи не найдены
+              </Typography>
+            </Box>
+          ) : (
+            <List disablePadding>
+              {foundUsers.map((user) => (
+                <ListItemButton
+                  key={user.id}
+                  onClick={() => onSelectUser(user.id)}
+                  sx={{
+                    borderBottom: "1px solid",
+                    borderColor: "divider",
+                  }}
+                >
+                  <ListItemText
+                    primary={
+                      <Typography variant="body1">{user.login}</Typography>
+                    }
+                    secondary={
+                      <Typography variant="body2" color="text.secondary">
+                        Открыть диалог
+                      </Typography>
+                    }
+                  />
+                </ListItemButton>
+              ))}
+            </List>
+          )
+        ) : chats.length === 0 ? (
           <Box sx={{ p: 2 }}>
             <Typography variant="body2" color="text.secondary">
               Чаты не найдены
@@ -99,7 +128,7 @@ export function ChatSidebar({
           </Box>
         ) : (
           <List disablePadding>
-            {filteredChats.map((chat) => {
+            {chats.map((chat) => {
               const isActive = chat.id === activeChatId;
               const unreadCount = unreadByChat[chat.id] ?? 0;
 
