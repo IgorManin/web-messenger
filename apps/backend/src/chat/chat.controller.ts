@@ -1,7 +1,8 @@
-import { Controller, Get, Param, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
 import { ChatService } from "./chat.service.js";
 import { JwtAccessGuard } from "../auth/guards/jwt-access.guard.js";
 import { CurrentUser } from "../auth/decorators/current-user.decorator.js";
+import { CreateDirectChatDto } from "./dto/create-direct-chat.dto.js";
 
 type CurrentAuthUser = {
   id: number;
@@ -24,5 +25,13 @@ export class ChatController {
     @CurrentUser() user: CurrentAuthUser,
   ) {
     return this.chatService.getMessagesByChat(chatId, user.id);
+  }
+
+  @Post("direct")
+  createOrGetDirectChat(
+    @Body() dto: CreateDirectChatDto,
+    @CurrentUser() user: CurrentAuthUser,
+  ) {
+    return this.chatService.createOrGetDirectChat(user.id, dto.targetUserId);
   }
 }

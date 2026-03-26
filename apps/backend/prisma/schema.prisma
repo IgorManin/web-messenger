@@ -23,6 +23,8 @@ model Chat {
   id           String            @id @default(cuid())
   title        String
   type         ChatType
+  directChatKey  String?           @unique
+
   participants ChatParticipant[]
   messages     Message[]
 
