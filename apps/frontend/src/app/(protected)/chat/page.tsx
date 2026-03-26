@@ -17,6 +17,7 @@ import {
   getChats,
   searchUsersByLogin,
 } from "@/modules/chat/api/chat.api";
+import { getSocket } from "@/modules/ws/api/ws.client";
 
 const sortChatsByUpdatedAt = (chats: ChatItem[]) => {
   return [...chats].sort((a, b) => {
@@ -53,6 +54,7 @@ export default function ChatPage() {
   const [search, setSearch] = useState("");
   const [foundUsers, setFoundUsers] = useState<ChatCompanion[]>([]);
   const [chats, setChats] = useState<ChatItem[]>([]);
+  const [temporaryChat, setTemporaryChat] = useState<ChatItem | null>(null);
   const [messagesByChat, setMessagesByChat] = useState<MessagesByChat>({});
   const [loadedChats, setLoadedChats] = useState<Record<string, boolean>>({});
   const [unreadByChat, setUnreadByChat] = useState<Record<string, number>>({});
@@ -82,9 +84,45 @@ export default function ChatPage() {
   }, []);
 
   useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleChatNew = (chat: ChatItem) => {
+      setChats((prev) => {
+        const exists = prev.some((item) => item.id === chat.id);
+
+        if (exists) {
+          const updatedChats = prev.map((item) => {
+            if (item.id !== chat.id) return item;
+            return chat;
+          });
+
+          return sortChatsByUpdatedAt(updatedChats);
+        }
+
+        return sortChatsByUpdatedAt([chat, ...prev]);
+      });
+
+      setTemporaryChat((prev) => {
+        if (prev?.id === chat.id) {
+          return null;
+        }
+
+        return prev;
+      });
+    };
+
+    socket.on("chat:new", handleChatNew);
+
+    return () => {
+      socket.off("chat:new", handleChatNew);
+    };
+  }, []);
+
+  useEffect(() => {
     const trimmedSearch = search.trim();
 
-    if (!trimmedSearch) {
+    if (trimmedSearch.length < 2) {
       setFoundUsers([]);
       return;
     }
@@ -129,9 +167,27 @@ export default function ChatPage() {
     void loadMessages();
   }, [activeChatId, loadedChats]);
 
+  const sidebarChats = useMemo(() => {
+    if (!temporaryChat) {
+      return chats;
+    }
+
+    const exists = chats.some((chat) => chat.id === temporaryChat.id);
+
+    if (exists) {
+      return chats;
+    }
+
+    return sortChatsByUpdatedAt([temporaryChat, ...chats]);
+  }, [chats, temporaryChat]);
+
   const activeChat = useMemo(() => {
+    if (temporaryChat && temporaryChat.id === activeChatId) {
+      return temporaryChat;
+    }
+
     return chats.find((chat) => chat.id === activeChatId) ?? null;
-  }, [chats, activeChatId]);
+  }, [chats, activeChatId, temporaryChat]);
 
   const activeMessages = useMemo(() => {
     return messagesByChat[activeChatId] ?? [];
@@ -144,6 +200,14 @@ export default function ChatPage() {
   const handleSelectChat = useCallback((chatId: string) => {
     setActiveChatId(chatId);
 
+    setTemporaryChat((prev) => {
+      if (prev?.id === chatId) {
+        return prev;
+      }
+
+      return null;
+    });
+
     setUnreadByChat((prev) => {
       if (!prev[chatId]) return prev;
 
@@ -154,32 +218,28 @@ export default function ChatPage() {
     });
   }, []);
 
-  const handleSelectUser = useCallback(async (userId: number) => {
-    try {
-      const directChat = await createOrGetDirectChat(userId);
-
-      setChats((prev) => {
-        const existingChat = prev.find((chat) => chat.id === directChat.id);
+  const handleSelectUser = useCallback(
+    async (userId: number) => {
+      try {
+        const directChat = await createOrGetDirectChat(userId);
+        const existingChat = chats.find((chat) => chat.id === directChat.id);
 
         if (existingChat) {
-          const updatedChats = prev.map((chat) => {
-            if (chat.id !== directChat.id) return chat;
-            return directChat;
-          });
-
-          return sortChatsByUpdatedAt(updatedChats);
+          setActiveChatId(existingChat.id);
+          setTemporaryChat(null);
+        } else {
+          setTemporaryChat(directChat);
+          setActiveChatId(directChat.id);
         }
 
-        return sortChatsByUpdatedAt([directChat, ...prev]);
-      });
-
-      setActiveChatId(directChat.id);
-      setSearch("");
-      setFoundUsers([]);
-    } catch (error) {
-      console.error("Ошибка открытия direct-чата", error);
-    }
-  }, []);
+        setSearch("");
+        setFoundUsers([]);
+      } catch (error) {
+        console.error("Ошибка открытия direct-чата", error);
+      }
+    },
+    [chats],
+  );
 
   const onTypingChange = useCallback(
     (chatId: string, payload: { userId: string; isTyping: boolean }) => {
@@ -273,7 +333,7 @@ export default function ChatPage() {
       }}
     >
       <ChatSidebar
-        chats={chats}
+        chats={sidebarChats}
         foundUsers={foundUsers}
         unreadByChat={unreadByChat}
         activeChatId={activeChatId}

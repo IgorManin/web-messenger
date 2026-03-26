@@ -7,6 +7,43 @@ import {
 import { PrismaService } from "../prisma/prisma.service.js";
 import { UsersService } from "../users/users.service.js";
 
+type ChatWithRelations = {
+  id: string;
+  title: string;
+  type: string;
+  updatedAt: Date;
+  messages: {
+    text: string;
+    createdAt: Date;
+  }[];
+  participants: {
+    userId: number;
+    user: {
+      id: number;
+      login: string;
+    };
+  }[];
+};
+
+type ChatListItem = {
+  id: string;
+  title: string;
+  type: string;
+  lastMessage: string;
+  updatedAt: string;
+  companion: {
+    id: number;
+    login: string;
+  } | null;
+};
+
+type CreateOrGetDirectChatResult = {
+  chat: ChatListItem;
+  chatForTargetUser: ChatListItem;
+  created: boolean;
+  targetUserId: number;
+};
+
 @Injectable()
 export class ChatService {
   constructor(
@@ -18,7 +55,30 @@ export class ChatService {
     const [minUserId, maxUserId] = [firstUserId, secondUserId].sort(
       (a, b) => a - b,
     );
+
     return `${minUserId}:${maxUserId}`;
+  }
+
+  private mapChatListItem(chat: ChatWithRelations, currentUserId: number) {
+    const lastMessage = chat.messages[0] ?? null;
+    const actualUpdatedAt = lastMessage?.createdAt ?? chat.updatedAt;
+
+    const companion =
+      chat.type === "direct"
+        ? (chat.participants.find(
+            (participant) => participant.userId !== currentUserId,
+          )?.user ?? null)
+        : null;
+
+    return {
+      id: chat.id,
+      title:
+        chat.type === "direct" ? (companion?.login ?? chat.title) : chat.title,
+      type: chat.type,
+      lastMessage: lastMessage?.text ?? "",
+      updatedAt: actualUpdatedAt.toISOString(),
+      companion,
+    };
   }
 
   async getChatsForUser(userId: number) {
@@ -29,6 +89,17 @@ export class ChatService {
             userId,
           },
         },
+        OR: [
+          {
+            type: "group",
+          },
+          {
+            type: "direct",
+            messages: {
+              some: {},
+            },
+          },
+        ],
       },
       include: {
         messages: {
@@ -54,29 +125,7 @@ export class ChatService {
     });
 
     return chats
-      .map((chat) => {
-        const lastMessage = chat.messages[0] ?? null;
-        const actualUpdatedAt = lastMessage?.createdAt ?? chat.updatedAt;
-
-        const companion =
-          chat.type === "direct"
-            ? (chat.participants.find(
-                (participant) => participant.userId !== userId,
-              )?.user ?? null)
-            : null;
-
-        return {
-          id: chat.id,
-          title:
-            chat.type === "direct"
-              ? (companion?.login ?? chat.title)
-              : chat.title,
-          type: chat.type,
-          lastMessage: lastMessage?.text ?? "",
-          updatedAt: actualUpdatedAt.toISOString(),
-          companion,
-        };
-      })
+      .map((chat) => this.mapChatListItem(chat, userId))
       .sort(
         (a, b) =>
           new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
@@ -121,7 +170,10 @@ export class ChatService {
     }));
   }
 
-  async createOrGetDirectChat(currentUserId: number, targetUserId: number) {
+  async createOrGetDirectChat(
+    currentUserId: number,
+    targetUserId: number,
+  ): Promise<CreateOrGetDirectChatResult> {
     if (currentUserId === targetUserId) {
       throw new BadRequestException("Нельзя создать чат с самим собой");
     }
@@ -159,21 +211,11 @@ export class ChatService {
     });
 
     if (existingChat) {
-      const companion =
-        existingChat.participants.find(
-          (participant) => participant.userId !== currentUserId,
-        )?.user ?? null;
-
-      const lastMessage = existingChat.messages[0] ?? null;
-      const actualUpdatedAt = lastMessage?.createdAt ?? existingChat.updatedAt;
-
       return {
-        id: existingChat.id,
-        title: companion?.login ?? existingChat.title,
-        type: existingChat.type,
-        lastMessage: lastMessage?.text ?? "",
-        updatedAt: actualUpdatedAt.toISOString(),
-        companion,
+        chat: this.mapChatListItem(existingChat, currentUserId),
+        chatForTargetUser: this.mapChatListItem(existingChat, targetUserId),
+        created: false,
+        targetUserId,
       };
     }
 
@@ -206,21 +248,11 @@ export class ChatService {
       },
     });
 
-    const companion =
-      createdChat.participants.find(
-        (participant) => participant.userId !== currentUserId,
-      )?.user ?? null;
-
-    const lastMessage = createdChat.messages[0] ?? null;
-    const actualUpdatedAt = lastMessage?.createdAt ?? createdChat.updatedAt;
-
     return {
-      id: createdChat.id,
-      title: companion?.login ?? createdChat.title,
-      type: createdChat.type,
-      lastMessage: lastMessage?.text ?? "",
-      updatedAt: actualUpdatedAt.toISOString(),
-      companion,
+      chat: this.mapChatListItem(createdChat, currentUserId),
+      chatForTargetUser: this.mapChatListItem(createdChat, targetUserId),
+      created: true,
+      targetUserId,
     };
   }
 }

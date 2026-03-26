@@ -57,7 +57,7 @@ export function ChatSidebar({
   onSelectUser,
 }: ChatSidebarProps) {
   const trimmedSearch = search.trim();
-  const isSearchMode = trimmedSearch.length > 0;
+  const isSearchMode = trimmedSearch.length >= 2;
 
   const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
     onSearchChange(e.target.value);

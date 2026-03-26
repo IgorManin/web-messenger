@@ -28,10 +28,15 @@ export class ChatController {
   }
 
   @Post("direct")
-  createOrGetDirectChat(
+  async createOrGetDirectChat(
     @Body() dto: CreateDirectChatDto,
     @CurrentUser() user: CurrentAuthUser,
   ) {
-    return this.chatService.createOrGetDirectChat(user.id, dto.targetUserId);
+    const result = await this.chatService.createOrGetDirectChat(
+      user.id,
+      dto.targetUserId,
+    );
+
+    return result.chat;
   }
 }
