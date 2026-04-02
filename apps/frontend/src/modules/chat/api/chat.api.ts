@@ -2,6 +2,12 @@ import { apiClient } from "@/shared/api/apiClient";
 import { ChatCompanion, ChatItem } from "@/modules/chat/model/types";
 import { MessageDto } from "@/modules/ws";
 
+type CreateDirectFirstMessageResponse = {
+  chat: ChatItem;
+  message: MessageDto;
+  createdChat: boolean;
+};
+
 export function getChats() {
   return apiClient<ChatItem[]>("/chats");
 }
@@ -16,9 +22,16 @@ export function searchUsersByLogin(login: string) {
   return apiClient<ChatCompanion[]>(`/users/search?${searchParams.toString()}`);
 }
 
-export function createOrGetDirectChat(targetUserId: number) {
-  return apiClient<ChatItem>("/chats/direct", {
-    method: "POST",
-    body: JSON.stringify({ targetUserId }),
-  });
+export function createDirectFirstMessage(payload: {
+  targetUserId: number;
+  text: string;
+  clientMessageId?: string;
+}) {
+  return apiClient<CreateDirectFirstMessageResponse>(
+    "/chats/direct/first-message",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
 }

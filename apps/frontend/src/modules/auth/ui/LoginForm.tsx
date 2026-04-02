@@ -4,6 +4,8 @@ import { useAuthActions } from "@/modules/auth/hooks/useAuthActions";
 import { Box, Button, TextField, Typography } from "@mui/material";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
+import { AvatarPicker } from "@/modules/auth/ui/AvatarPicker";
+import { usersApi } from "@/modules/user/api/users.api";
 
 type AuthMode = "login" | "register";
 
@@ -21,13 +23,30 @@ export function AuthForm({ mode }: AuthFormProps) {
 
   const [currentLogin, setCurrentLogin] = useState("");
   const [password, setPassword] = useState("");
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarError, setAvatarError] = useState("");
 
   const title = mode === "login" ? "Вход" : "Регистрация";
   const submitText = mode === "login" ? "Войти" : "Создать аккаунт";
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setAvatarError("");
+
     await mutation.mutateAsync({ login: currentLogin, password });
+
+    if (mode === "register" && avatarFile) {
+      try {
+        await usersApi.uploadAvatar(avatarFile);
+      } catch (error) {
+        setAvatarError(
+          error instanceof Error
+            ? error.message
+            : "Не удалось загрузить аватар",
+        );
+      }
+    }
+
     router.push(next);
   };
 
@@ -42,6 +61,10 @@ export function AuthForm({ mode }: AuthFormProps) {
       sx={{ maxWidth: 380, mx: "auto", mt: 8, display: "grid", gap: 2 }}
     >
       <Typography variant="h5">{title}</Typography>
+
+      {mode === "register" && (
+        <AvatarPicker file={avatarFile} onChange={setAvatarFile} />
+      )}
 
       <TextField
         label="Email"
@@ -63,6 +86,12 @@ export function AuthForm({ mode }: AuthFormProps) {
       {mutation.isError && (
         <Typography variant="body2" color="error">
           {(mutation.error as Error).message}
+        </Typography>
+      )}
+
+      {!mutation.isError && avatarError && (
+        <Typography variant="body2" color="error">
+          {avatarError}
         </Typography>
       )}
 

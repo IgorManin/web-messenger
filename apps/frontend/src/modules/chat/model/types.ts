@@ -17,3 +17,21 @@ export interface ChatItem {
   updatedAt: string;
   companion: ChatCompanion | null;
 }
+
+export interface DraftDirectChat {
+  id: string;
+  title: string;
+  type: "direct";
+  lastMessage: string;
+  updatedAt: string;
+  companion: ChatCompanion;
+  isDraft: true;
+}
+
+export type ActiveChat = ChatItem | DraftDirectChat;
+
+export const isDraftDirectChat = (
+  chat: ActiveChat | null | undefined,
+): chat is DraftDirectChat => {
+  return Boolean(chat && "isDraft" in chat && chat.isDraft);
+};

@@ -10,10 +10,15 @@ import {
   useState,
 } from "react";
 import { MessageDto, useWsMessages } from "@/modules/ws";
-import { ChatItem } from "@/modules/chat/model/types";
+import {
+  ActiveChat,
+  ChatItem,
+  isDraftDirectChat,
+} from "@/modules/chat/model/types";
+import { createDirectFirstMessage } from "@/modules/chat/api/chat.api";
 
 interface ChatWindowProps {
-  chat: ChatItem | null;
+  chat: ActiveChat | null;
   myUserId: string | null;
   messages: MessageDto[];
   typingText?: string | null;
@@ -22,6 +27,11 @@ interface ChatWindowProps {
     chatId: string,
     payload: { userId: string; isTyping: boolean },
   ) => void;
+  onDraftChatCreated: (payload: {
+    draftChatId: string;
+    realChat: ChatItem;
+    firstMessage: MessageDto;
+  }) => void;
 }
 
 export function ChatWindow({
@@ -30,38 +40,15 @@ export function ChatWindow({
   messages,
   typingText,
   onAppendMessage,
-  onTypingChange,
+  onDraftChatCreated,
 }: ChatWindowProps) {
   const [text, setText] = useState("");
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  const currentChatId = chat?.id ?? "";
-
-  const onMessage = useCallback(
-    (message: MessageDto) => {
-      if (!message.chatId) return;
-      onAppendMessage(message.chatId, message);
-    },
-    [onAppendMessage],
-  );
-
-  const onTyping = useCallback(
-    (payload: { chatId: string; userId: string; isTyping: boolean }) => {
-      if (!payload.chatId) return;
-      if (payload.userId === myUserId) return;
-
-      onTypingChange(payload.chatId, {
-        userId: payload.userId,
-        isTyping: payload.isTyping,
-      });
-    },
-    [myUserId, onTypingChange],
-  );
+  const currentChatId = isDraftDirectChat(chat) ? "" : (chat?.id ?? "");
 
   const { sendMessage, notifyTyping, sendTyping } = useWsMessages({
     chatId: currentChatId,
-    onMessage,
-    onTyping,
   });
 
   const canSend = useMemo(() => {
@@ -73,12 +60,38 @@ export function ChatWindow({
 
     if (!value || !chat) return;
 
+    if (isDraftDirectChat(chat)) {
+      const clientMessageId = crypto.randomUUID();
+
+      const response = await createDirectFirstMessage({
+        targetUserId: chat.companion.id,
+        text: value,
+        clientMessageId,
+      });
+
+      onDraftChatCreated({
+        draftChatId: chat.id,
+        realChat: response.chat,
+        firstMessage: response.message,
+      });
+
+      setText("");
+      return;
+    }
+
     const ack = await sendMessage(value);
 
-    onAppendMessage(chat.id, ack);
+    onAppendMessage(ack.chatId, ack);
     sendTyping(false);
     setText("");
-  }, [text, chat, sendMessage, onAppendMessage, sendTyping]);
+  }, [
+    text,
+    chat,
+    sendMessage,
+    onAppendMessage,
+    sendTyping,
+    onDraftChatCreated,
+  ]);
 
   const handleSubmit = useCallback(
     async (e: FormEvent) => {
@@ -138,7 +151,7 @@ export function ChatWindow({
             </Typography>
           ) : (
             <Typography variant="caption" color="text.secondary">
-              chatId: {chat.id}
+              {isDraftDirectChat(chat) ? "Новый чат" : `chatId: ${chat.id}`}
             </Typography>
           )}
         </Box>
@@ -204,10 +217,13 @@ export function ChatWindow({
           value={text}
           onChange={(e) => {
             setText(e.target.value);
-            if (e.target.value.trim()) {
-              notifyTyping();
-            } else {
-              sendTyping(false);
+
+            if (!isDraftDirectChat(chat)) {
+              if (e.target.value.trim()) {
+                notifyTyping();
+              } else {
+                sendTyping(false);
+              }
             }
           }}
           placeholder="Напиши сообщение..."

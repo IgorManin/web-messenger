@@ -6,6 +6,7 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service.js";
 import { UsersService } from "../users/users.service.js";
+import { CreateDirectFirstMessageDto } from "./dto/create-direct-first-message.dto.js";
 
 type ChatWithRelations = {
   id: string;
@@ -41,6 +42,21 @@ type CreateOrGetDirectChatResult = {
   chat: ChatListItem;
   chatForTargetUser: ChatListItem;
   created: boolean;
+  targetUserId: number;
+};
+
+type CreateDirectFirstMessageResult = {
+  chat: ChatListItem;
+  chatForTargetUser: ChatListItem;
+  message: {
+    id: string;
+    clientMessageId: string;
+    chatId: string;
+    authorId: string;
+    text: string;
+    createdAt: string;
+  };
+  createdChat: boolean;
   targetUserId: number;
 };
 
@@ -253,6 +269,176 @@ export class ChatService {
       chatForTargetUser: this.mapChatListItem(createdChat, targetUserId),
       created: true,
       targetUserId,
+    };
+  }
+
+  async createDirectFirstMessage(
+    currentUserId: number,
+    dto: CreateDirectFirstMessageDto,
+  ): Promise<CreateDirectFirstMessageResult> {
+    if (currentUserId === dto.targetUserId) {
+      throw new BadRequestException("Нельзя создать чат с самим собой");
+    }
+
+    const targetUser = await this.usersService.findById(dto.targetUserId);
+
+    if (!targetUser) {
+      throw new NotFoundException("Пользователь не найден");
+    }
+
+    const text = dto.text.trim();
+
+    if (!text) {
+      throw new BadRequestException("Сообщение не должно быть пустым");
+    }
+
+    const directChatKey = this.buildDirectChatKey(
+      currentUserId,
+      dto.targetUserId,
+    );
+
+    const existingChat = await this.prisma.chat.findUnique({
+      where: {
+        directChatKey,
+      },
+      include: {
+        participants: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                login: true,
+              },
+            },
+          },
+        },
+        messages: {
+          orderBy: {
+            createdAt: "desc",
+          },
+          take: 1,
+        },
+      },
+    });
+
+    let chat = existingChat;
+    let createdChat = false;
+
+    if (!chat) {
+      chat = await this.prisma.chat.create({
+        data: {
+          title: targetUser.login,
+          type: "direct",
+          directChatKey,
+          participants: {
+            create: [{ userId: currentUserId }, { userId: dto.targetUserId }],
+          },
+        },
+        include: {
+          participants: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  login: true,
+                },
+              },
+            },
+          },
+          messages: {
+            orderBy: {
+              createdAt: "desc",
+            },
+            take: 1,
+          },
+        },
+      });
+
+      createdChat = true;
+    }
+
+    if (dto.clientMessageId) {
+      const existingMessage = await this.prisma.message.findFirst({
+        where: {
+          chatId: chat.id,
+          clientMessageId: dto.clientMessageId,
+          authorId: currentUserId,
+        },
+      });
+
+      if (existingMessage) {
+        return {
+          chat: this.mapChatListItem(chat, currentUserId),
+          chatForTargetUser: this.mapChatListItem(chat, dto.targetUserId),
+          createdChat,
+          targetUserId: dto.targetUserId,
+          message: {
+            id: existingMessage.id,
+            clientMessageId: existingMessage.clientMessageId ?? "",
+            chatId: existingMessage.chatId,
+            authorId: String(existingMessage.authorId),
+            text: existingMessage.text,
+            createdAt: existingMessage.createdAt.toISOString(),
+          },
+        };
+      }
+    }
+
+    const createdMessage = await this.prisma.message.create({
+      data: {
+        chatId: chat.id,
+        authorId: currentUserId,
+        text,
+        clientMessageId: dto.clientMessageId ?? null,
+      },
+    });
+
+    await this.prisma.chat.update({
+      where: { id: chat.id },
+      data: {
+        updatedAt: createdMessage.createdAt,
+      },
+    });
+
+    const refreshedChat = await this.prisma.chat.findUnique({
+      where: { id: chat.id },
+      include: {
+        participants: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                login: true,
+              },
+            },
+          },
+        },
+        messages: {
+          orderBy: {
+            createdAt: "desc",
+          },
+          take: 1,
+        },
+      },
+    });
+
+    if (!refreshedChat) {
+      throw new NotFoundException("Чат не найден");
+    }
+
+    return {
+      chat: this.mapChatListItem(refreshedChat, currentUserId),
+      chatForTargetUser: this.mapChatListItem(refreshedChat, dto.targetUserId),
+      createdChat,
+      targetUserId: dto.targetUserId,
+      message: {
+        id: createdMessage.id,
+        clientMessageId: createdMessage.clientMessageId ?? "",
+        chatId: createdMessage.chatId,
+        authorId: String(createdMessage.authorId),
+        text: createdMessage.text,
+        createdAt: createdMessage.createdAt.toISOString(),
+      },
     };
   }
 }
