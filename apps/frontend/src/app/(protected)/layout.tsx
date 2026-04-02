@@ -15,6 +15,8 @@ export default function ProtectedLayout({
   const token = useAuthStore((s) => s.accessToken);
   const isInitialized = useAuthStore((s) => s.isInitialized);
 
+  console.log("token", token);
+
   useEffect(() => {
     if (!isInitialized) return;
     if (!token) router.replace(`/login?next=${encodeURIComponent(pathname)}`);

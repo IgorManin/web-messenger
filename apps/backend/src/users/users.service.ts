@@ -38,10 +38,23 @@ export class UsersService {
       select: {
         id: true,
         login: true,
+        avatarUrl: true,
       },
       take: 20,
       orderBy: {
         login: "asc",
+      },
+    });
+  }
+
+  async updateAvatar(userId: number, avatarUrl: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { avatarUrl },
+      select: {
+        id: true,
+        login: true,
+        avatarUrl: true,
       },
     });
   }

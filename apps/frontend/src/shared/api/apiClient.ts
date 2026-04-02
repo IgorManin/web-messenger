@@ -22,12 +22,13 @@ export async function apiClient<T>(
   if (!API_URL) throw new Error("NEXT_PUBLIC_API_URL is not set");
 
   const token = useAuthStore.getState().accessToken;
+  const isFormData = options.body instanceof FormData;
 
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
     credentials: "include",
     headers: {
-      "Content-Type": "application/json",
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options.headers ?? {}),
     },

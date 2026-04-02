@@ -158,14 +158,6 @@ export class WsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
     }
 
-    const existingMessagesCount = await this.prisma.message.count({
-      where: {
-        chatId: dto.chatId,
-      },
-    });
-
-    const isFirstMessage = existingMessagesCount === 0;
-
     const createdMessage = await this.prisma.message.create({
       data: {
         chatId: dto.chatId,
@@ -181,31 +173,6 @@ export class WsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         updatedAt: createdMessage.createdAt,
       },
     });
-
-    const chatWithParticipants = await this.prisma.chat.findUnique({
-      where: { id: dto.chatId },
-      select: {
-        type: true,
-        participants: {
-          select: {
-            userId: true,
-          },
-        },
-      },
-    });
-
-    if (isFirstMessage && chatWithParticipants?.type === "direct") {
-      for (const participant of chatWithParticipants.participants) {
-        const chatPayload = await this.buildChatListItem(
-          dto.chatId,
-          participant.userId,
-        );
-
-        this.server
-          .to(`user:${participant.userId}`)
-          .emit("chat:new", chatPayload);
-      }
-    }
 
     const message = {
       id: createdMessage.id,

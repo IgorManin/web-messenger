@@ -4,53 +4,12 @@ import { useCallback, useEffect, useRef } from "react";
 import { getSocket } from "../api/ws.client";
 import { MessageDto } from "@/modules/ws";
 
-type TypingDto = {
-  chatId: string;
-  userId: string;
-  isTyping: boolean;
-};
-
 type UseWsMessagesParams = {
   chatId: string;
-  onMessage?: (message: MessageDto) => void;
-  onTyping?: (payload: TypingDto) => void;
 };
 
-export const useWsMessages = ({
-  chatId,
-  onMessage,
-  onTyping,
-}: UseWsMessagesParams) => {
+export const useWsMessages = ({ chatId }: UseWsMessagesParams) => {
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    const socket = getSocket();
-    if (!socket || !chatId) return;
-
-    socket.emit("chat:join", { chatId }, (response: { ok?: boolean }) => {
-      if (!response?.ok) {
-        console.log("[ws] chat:join failed", response);
-      }
-    });
-
-    const handleIncomingMessage = (message: MessageDto) => {
-      if (message.chatId !== chatId) return;
-      onMessage?.(message);
-    };
-
-    const handleTyping = (payload: TypingDto) => {
-      if (payload.chatId !== chatId) return;
-      onTyping?.(payload);
-    };
-
-    socket.on("message:new", handleIncomingMessage);
-    socket.on("typing:update", handleTyping);
-
-    return () => {
-      socket.off("message:new", handleIncomingMessage);
-      socket.off("typing:update", handleTyping);
-    };
-  }, [chatId, onMessage, onTyping]);
 
   const sendMessage = useCallback(
     async (text: string) => {
