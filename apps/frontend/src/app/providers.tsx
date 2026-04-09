@@ -1,9 +1,9 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useAuthInit } from "@/modules/auth/hooks/useAuthInit";
 import { ReactNode, useState } from "react";
 import { WsProvider } from "@/modules/ws";
+import { useAuthInit } from "@/modules/auth/hooks/useAuthInit";
 
 export function Providers({ children }: { children: ReactNode }) {
   const [client] = useState(
