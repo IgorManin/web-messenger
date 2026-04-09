@@ -1,22 +1,5 @@
-import { MessageDto } from "@/modules/ws";
-
-export type ChatType = "direct" | "group";
-
-export type MessagesByChat = Record<string, MessageDto[]>;
-
-export type ChatCompanion = {
-  id: number;
-  login: string;
-};
-
-export interface ChatItem {
-  id: string;
-  title: string;
-  type: ChatType;
-  lastMessage: string;
-  updatedAt: string;
-  companion: ChatCompanion | null;
-}
+import { ChatItem } from "@shared/modules/chat/model/types";
+import { UserSearchResult } from "@shared/modules/user/model/types";
 
 export interface DraftDirectChat {
   id: string;
@@ -24,7 +7,7 @@ export interface DraftDirectChat {
   type: "direct";
   lastMessage: string;
   updatedAt: string;
-  companion: ChatCompanion;
+  companion: UserSearchResult;
   isDraft: true;
 }
 

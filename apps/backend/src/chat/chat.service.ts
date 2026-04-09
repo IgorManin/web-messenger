@@ -22,6 +22,7 @@ type ChatWithRelations = {
     user: {
       id: number;
       login: string;
+      avatarUrl: string | null;
     };
   }[];
 };
@@ -35,6 +36,7 @@ type ChatListItem = {
   companion: {
     id: number;
     login: string;
+    avatarUrl: string | null;
   } | null;
 };
 
@@ -130,6 +132,7 @@ export class ChatService {
               select: {
                 id: true,
                 login: true,
+                avatarUrl: true,
               },
             },
           },
@@ -213,6 +216,7 @@ export class ChatService {
               select: {
                 id: true,
                 login: true,
+                avatarUrl: true,
               },
             },
           },
@@ -251,6 +255,7 @@ export class ChatService {
               select: {
                 id: true,
                 login: true,
+                avatarUrl: true,
               },
             },
           },
@@ -308,6 +313,7 @@ export class ChatService {
               select: {
                 id: true,
                 login: true,
+                avatarUrl: true,
               },
             },
           },
@@ -341,6 +347,7 @@ export class ChatService {
                 select: {
                   id: true,
                   login: true,
+                  avatarUrl: true,
                 },
               },
             },
@@ -409,6 +416,7 @@ export class ChatService {
               select: {
                 id: true,
                 login: true,
+                avatarUrl: true,
               },
             },
           },

@@ -9,8 +9,8 @@ export function useUserSearch() {
 
   useEffect(() => {
     const trimmed = search.trim();
-
-    if (trimmed.length < 2) {
+    //todo потом зменить на < 2
+    if (trimmed.length < 1) {
       setFoundUsers([]);
       return;
     }
@@ -30,7 +30,12 @@ export function useUserSearch() {
     return () => window.clearTimeout(timeoutId);
   }, [search]);
 
-  const isSearchMode = search.trim().length >= 2;
+  const clearSearch = () => {
+    setSearch("");
+    setFoundUsers([]);
+  };
+  // todo потом сделать >=2
+  const isSearchMode = search.trim().length >= 1;
 
   return {
     search,
@@ -38,5 +43,6 @@ export function useUserSearch() {
     foundUsers,
     isSearching,
     isSearchMode,
+    clearSearch,
   };
 }

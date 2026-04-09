@@ -2,58 +2,34 @@
 
 import { useEffect } from "react";
 import { getSocket } from "@/modules/ws/api/ws.client";
-import { ChatItem } from "@/modules/chat/model/types";
-import { MessageDto } from "@/modules/ws";
+import { useChatStore } from "@/modules/chat/store/chat.store";
+import { MessageDto, ChatItem } from "@shared/modules/chat/model/types";
+import { handleIncomingMessageAction } from "@/modules/chat/actions/handleIncomingMessage.action";
 
-type UseChatSocketParams = {
-  myUserId: string | null;
-  onChatNew: (chat: ChatItem) => void;
-  onMessageNew: (message: MessageDto) => void;
-  onTypingUpdate: (payload: {
-    chatId: string;
-    userId: string;
-    isTyping: boolean;
-  }) => void;
-};
-
-export function useChatSocket({
-  myUserId,
-  onChatNew,
-  onMessageNew,
-  onTypingUpdate,
-}: UseChatSocketParams) {
+export function useChatSocket() {
   useEffect(() => {
     const socket = getSocket();
     if (!socket) return;
 
-    const handleChatNew = (chat: ChatItem) => {
-      onChatNew(chat);
-    };
-
     const handleMessageNew = (message: MessageDto) => {
       if (!message.chatId) return;
-      onMessageNew(message);
+      handleIncomingMessageAction(message);
     };
 
-    const handleTyping = (payload: {
-      chatId: string;
-      userId: string;
-      isTyping: boolean;
-    }) => {
-      if (!payload.chatId) return;
-      if (payload.userId === myUserId) return;
-
-      onTypingUpdate(payload);
+    const handleChatNew = (chat: ChatItem) => {
+      const { chats, setChats } = useChatStore.getState();
+      const exists = chats.some((c) => c.id === chat.id);
+      if (!exists) {
+        setChats([chat, ...chats]);
+      }
     };
 
-    socket.on("chat:new", handleChatNew);
     socket.on("message:new", handleMessageNew);
-    socket.on("typing:update", handleTyping);
+    socket.on("chat:new", handleChatNew);
 
     return () => {
-      socket.off("chat:new", handleChatNew);
       socket.off("message:new", handleMessageNew);
-      socket.off("typing:update", handleTyping);
+      socket.off("chat:new", handleChatNew);
     };
-  }, [myUserId, onChatNew, onMessageNew, onTypingUpdate]);
+  }, []);
 }

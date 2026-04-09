@@ -10,13 +10,33 @@ import { ChatList } from "@/features/sidebar/ChatList";
 import { UserSearchList } from "@/features/sidebar/UserSearchList";
 
 export const ChatSidebar = () => {
-  const { chats, activeChatId, isChatsLoading, chatsError, setActiveChatId } =
-    useChatSidebar();
-
-  const { search, setSearch, foundUsers, isSearching, isSearchMode } =
-    useUserSearch();
+  const {
+    chats,
+    activeChatId,
+    isChatsLoading,
+    chatsError,
+    setActiveChatId,
+    handleSelectUser,
+  } = useChatSidebar();
 
   const { user } = useCurrentUser();
+
+  const {
+    search,
+    setSearch,
+    foundUsers,
+    isSearching,
+    isSearchMode,
+    clearSearch,
+  } = useUserSearch();
+
+  const onSelectUser = (userId: number) => {
+    const user = foundUsers.find((u) => u.id === userId);
+    if (!user) return;
+
+    handleSelectUser(user);
+    clearSearch();
+  };
 
   return (
     <Paper
@@ -50,7 +70,7 @@ export const ChatSidebar = () => {
         {isSearchMode ? (
           <UserSearchList
             users={foundUsers}
-            onSelectUser={(userId) => console.log("select user", userId)}
+            onSelectUser={onSelectUser}
             isLoading={isSearching}
           />
         ) : (
