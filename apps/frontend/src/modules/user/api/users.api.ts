@@ -1,23 +1,25 @@
 import { apiClient } from "@/shared/api/apiClient";
+import {
+  CurrentUser,
+  UploadAvatarResponse,
+  UserSearchResult,
+} from "@shared/modules/user/model/types";
 
-type UploadAvatarResponse = {
-  message: string;
-  avatarUrl: string;
-  user: {
-    id: number;
-    login: string;
-    avatarUrl: string | null;
-  };
+export const getMe = () => {
+  return apiClient<CurrentUser>("/users/me");
 };
 
-export const usersApi = {
-  uploadAvatar: (file: File) => {
-    const formData = new FormData();
-    formData.append("file", file);
+export const searchUsers = (login: string) => {
+  const params = new URLSearchParams({ login });
+  return apiClient<UserSearchResult[]>(`/users/search?${params}`);
+};
 
-    return apiClient<UploadAvatarResponse>("/users/avatar", {
-      method: "POST",
-      body: formData,
-    });
-  },
+export const uploadAvatar = (file: File) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  return apiClient<UploadAvatarResponse>("/users/avatar", {
+    method: "POST",
+    body: formData,
+  });
 };

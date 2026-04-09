@@ -29,6 +29,11 @@ export class UsersController {
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
+  @Get("me")
+  getMe(@CurrentUser() user: CurrentAuthUser) {
+    return this.usersService.findById(user.id);
+  }
+
   @Get("search")
   searchUsers(
     @Query() queryDto: SearchUsersDto,

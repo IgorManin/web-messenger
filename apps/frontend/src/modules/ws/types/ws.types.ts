@@ -1,4 +1,7 @@
 import { ChatItem } from "@/modules/chat/model/types";
+import { MessageDto } from "@shared/modules/chat/model/types";
+
+export type { MessageDto };
 
 export type ChatJoinDto = {
   chatId: string;
@@ -13,15 +16,6 @@ export type SendMessageDto = {
 export type TypingUpdateDto = {
   chatId: string;
   isTyping: boolean;
-};
-
-export type MessageDto = {
-  id: string;
-  chatId: string;
-  text: string;
-  authorId: string;
-  createdAt: string;
-  clientMessageId: string | null;
 };
 
 export type TypingEventDto = {
