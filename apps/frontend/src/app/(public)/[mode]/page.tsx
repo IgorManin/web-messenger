@@ -1,6 +1,6 @@
 "use client";
 
-import { AuthForm } from "@/modules/auth/ui/LoginForm";
+import { AuthForm } from "@/features/auth/LoginForm";
 import { useParams } from "next/navigation";
 
 type AuthMode = "login" | "register";

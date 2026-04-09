@@ -4,8 +4,8 @@ import { useAuthActions } from "@/modules/auth/hooks/useAuthActions";
 import { Box, Button, TextField, Typography } from "@mui/material";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
-import { AvatarPicker } from "@/modules/auth/ui/AvatarPicker";
-import { usersApi } from "@/modules/user/api/users.api";
+import { AvatarPicker } from "@/features/auth/AvatarPicker";
+import { uploadAvatar } from "@/modules/user/api/users.api";
 
 type AuthMode = "login" | "register";
 
@@ -37,7 +37,7 @@ export function AuthForm({ mode }: AuthFormProps) {
 
     if (mode === "register" && avatarFile) {
       try {
-        await usersApi.uploadAvatar(avatarFile);
+        await uploadAvatar(avatarFile);
       } catch (error) {
         setAvatarError(
           error instanceof Error
