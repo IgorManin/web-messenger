@@ -1,6 +1,6 @@
 import { create } from "zustand";
-import { ChatItem } from "@shared/modules/chat/model/types";
-import { MessageDto } from "@/modules/ws";
+import { ChatItem, MessageDto } from "@shared/modules/chat/model/types";
+import { DraftDirectChat } from "@/modules/chat/model/types";
 
 type ChatStoreState = {
   chats: ChatItem[];
@@ -10,6 +10,8 @@ type ChatStoreState = {
   messagesByChat: Record<string, MessageDto[]>;
   isMessagesLoading: boolean;
   messagesError: string | null;
+  draftChat: DraftDirectChat | null;
+  unreadByChat: Record<string, number>;
 };
 
 type ChatStoreActions = {
@@ -22,6 +24,9 @@ type ChatStoreActions = {
   appendMessage: (chatId: string, message: MessageDto) => void;
   setIsMessagesLoading: (value: boolean) => void;
   setMessagesError: (error: string | null) => void;
+  setDraftChat: (chat: DraftDirectChat | null) => void;
+  incrementUnread: (chatId: string) => void;
+  resetUnread: (chatId: string) => void;
 };
 
 type ChatStore = ChatStoreState & ChatStoreActions;
@@ -34,16 +39,25 @@ const initialState: ChatStoreState = {
   messagesByChat: {},
   isMessagesLoading: false,
   messagesError: null,
+  draftChat: null,
+  unreadByChat: {},
 };
 
 export const useChatStore = create<ChatStore>((set) => ({
   ...initialState,
 
   setChats: (chats) => set({ chats }),
-  setActiveChatId: (chatId) => set({ activeChatId: chatId }),
   setIsChatsLoading: (value) => set({ isChatsLoading: value }),
   setChatsError: (error) => set({ chatsError: error }),
   resetChatsState: () => set(initialState),
+  setActiveChatId: (chatId) =>
+    set((state) => ({
+      activeChatId: chatId,
+      unreadByChat: {
+        ...state.unreadByChat,
+        ...(chatId ? { [chatId]: 0 } : {}),
+      },
+    })),
 
   setMessages: (chatId, messages) =>
     set((state) => ({
@@ -61,14 +75,49 @@ export const useChatStore = create<ChatStore>((set) => ({
 
       if (alreadyExists) return state;
 
+      const updatedMessagesByChat = {
+        ...state.messagesByChat,
+        [chatId]: [...current, message],
+      };
+
+      const updatedChats = state.chats
+        .map((chat) =>
+          chat.id === chatId
+            ? {
+                ...chat,
+                lastMessage: message.text,
+                updatedAt: message.createdAt,
+              }
+            : chat,
+        )
+        .sort(
+          (a, b) =>
+            new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+        );
+
       return {
-        messagesByChat: {
-          ...state.messagesByChat,
-          [chatId]: [...current, message],
-        },
+        messagesByChat: updatedMessagesByChat,
+        chats: updatedChats,
       };
     }),
 
+  incrementUnread: (chatId) =>
+    set((state) => ({
+      unreadByChat: {
+        ...state.unreadByChat,
+        [chatId]: (state.unreadByChat[chatId] ?? 0) + 1,
+      },
+    })),
+
+  resetUnread: (chatId) =>
+    set((state) => ({
+      unreadByChat: {
+        ...state.unreadByChat,
+        [chatId]: 0,
+      },
+    })),
+
   setIsMessagesLoading: (value) => set({ isMessagesLoading: value }),
   setMessagesError: (error) => set({ messagesError: error }),
+  setDraftChat: (chat) => set({ draftChat: chat }),
 }));

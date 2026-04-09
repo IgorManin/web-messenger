@@ -1,12 +1,16 @@
 import {
+  Avatar,
+  Badge,
   Box,
   CircularProgress,
   List,
+  ListItemAvatar,
   ListItemButton,
   ListItemText,
   Typography,
 } from "@mui/material";
 import { ChatItem } from "@shared/modules/chat/model/types";
+import { useChatStore } from "@/modules/chat/store/chat.store";
 
 interface ChatListProps {
   chats: ChatItem[];
@@ -23,6 +27,8 @@ export const ChatList = ({
   isLoading,
   error,
 }: ChatListProps) => {
+  const unreadByChat = useChatStore((state) => state.unreadByChat);
+
   if (isLoading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", pt: 4 }}>
@@ -51,32 +57,58 @@ export const ChatList = ({
 
   return (
     <List disablePadding>
-      {chats.map((chat) => (
-        <ListItemButton
-          key={chat.id}
-          selected={chat.id === activeChatId}
-          onClick={() => onSelectChat(chat.id)}
-          sx={{
-            alignItems: "flex-start",
-            borderBottom: "1px solid",
-            borderColor: "divider",
-            py: 1.5,
-          }}
-        >
-          <ListItemText
-            primary={
-              <Typography fontWeight={600} noWrap>
-                {chat.title}
-              </Typography>
-            }
-            secondary={
-              <Typography variant="body2" color="text.secondary" noWrap>
-                {chat.lastMessage || "Нет сообщений"}
-              </Typography>
-            }
-          />
-        </ListItemButton>
-      ))}
+      {chats.map((chat) => {
+        const unread = unreadByChat[chat.id] ?? 0;
+
+        return (
+          <ListItemButton
+            key={chat.id}
+            selected={chat.id === activeChatId}
+            onClick={() => onSelectChat(chat.id)}
+            sx={{
+              borderBottom: "1px solid",
+              borderColor: "divider",
+              py: 1.5,
+            }}
+          >
+            <ListItemAvatar>
+              <Avatar
+                src={chat.companion?.avatarUrl ?? undefined}
+                sx={{ width: 40, height: 40 }}
+              >
+                {chat.title.slice(0, 2).toUpperCase()}
+              </Avatar>
+            </ListItemAvatar>
+            <ListItemText
+              primary={
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <Typography fontWeight={600} noWrap>
+                    {chat.title}
+                  </Typography>
+                  {unread > 0 && (
+                    <Badge
+                      badgeContent={unread}
+                      color="primary"
+                      sx={{ ml: 1 }}
+                    />
+                  )}
+                </Box>
+              }
+              secondary={
+                <Typography variant="body2" color="text.secondary" noWrap>
+                  {chat.lastMessage || "Нет сообщений"}
+                </Typography>
+              }
+            />
+          </ListItemButton>
+        );
+      })}
     </List>
   );
 };

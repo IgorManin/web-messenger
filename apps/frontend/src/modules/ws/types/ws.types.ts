@@ -1,5 +1,4 @@
-import { ChatItem } from "@/modules/chat/model/types";
-import { MessageDto } from "@shared/modules/chat/model/types";
+import { ChatItem, MessageDto } from "@shared/modules/chat/model/types";
 
 export type { MessageDto };
 
