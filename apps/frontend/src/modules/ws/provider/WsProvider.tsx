@@ -5,7 +5,7 @@ import { useWsConnection } from "@/modules/ws/hooks/useWsConnection";
 import { useChatSocket } from "@/modules/ws/hooks/useChatSocket";
 
 export function WsProvider({ children }: PropsWithChildren) {
-  useWsConnection();
-  useChatSocket();
+  const socket = useWsConnection();
+  useChatSocket(socket);
   return children;
 }
