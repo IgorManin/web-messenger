@@ -2,24 +2,43 @@
 
 import { connectSocket, disconnectSocket } from "@/modules/ws/api/ws.client";
 import { useAuthStore } from "@/modules/auth/store/auth.store";
-import { useEffect } from "react";
+import { useChatStore } from "@/modules/chat/store/chat.store";
+import { useEffect, useState } from "react";
+import type { Socket } from "socket.io-client";
+import type {
+  ClientToServerEvents,
+  ServerToClientEvents,
+} from "@/modules/ws/types/ws.types";
 
-export const useWsConnection = () => {
+export const useWsConnection = (): Socket<
+  ServerToClientEvents,
+  ClientToServerEvents
+> | null => {
   const accessToken = useAuthStore((state) => state.accessToken);
   const isInitialized = useAuthStore((state) => state.isInitialized);
+  const [socket, setSocket] = useState<Socket<
+    ServerToClientEvents,
+    ClientToServerEvents
+  > | null>(null);
 
   useEffect(() => {
     if (!isInitialized) return;
 
     if (!accessToken) {
       disconnectSocket();
+      setSocket(null);
       return;
     }
 
-    const socket = connectSocket(accessToken);
+    const s = connectSocket(accessToken);
+    setSocket(s);
 
     const handleConnect = () => {
-      console.log("[ws] connected", socket.id);
+      console.log("[ws] connected", s.id);
+      const chats = useChatStore.getState().chats;
+      chats.forEach((chat) => {
+        s.emit("chat:join", { chatId: chat.id }, () => {});
+      });
     };
 
     const handleDisconnect = (reason: string) => {
@@ -30,14 +49,16 @@ export const useWsConnection = () => {
       console.log("[ws] connect_error", error);
     };
 
-    socket.on("connect", handleConnect);
-    socket.on("disconnect", handleDisconnect);
-    socket.on("connect_error", handleConnectError);
+    s.on("connect", handleConnect);
+    s.on("disconnect", handleDisconnect);
+    s.on("connect_error", handleConnectError);
 
     return () => {
-      socket.off("connect", handleConnect);
-      socket.off("disconnect", handleDisconnect);
-      socket.off("connect_error", handleConnectError);
+      s.off("connect", handleConnect);
+      s.off("disconnect", handleDisconnect);
+      s.off("connect_error", handleConnectError);
     };
   }, [accessToken, isInitialized]);
+
+  return socket;
 };

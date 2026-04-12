@@ -22,7 +22,7 @@ export function useChatWindow() {
   const messages =
     activeChatId && !isDraft ? (messagesByChat[activeChatId] ?? []) : [];
 
-  const { sendMessage } = useWsMessages({
+  const { sendMessage, notifyTyping } = useWsMessages({
     chatId: isDraft ? "" : (activeChatId ?? ""),
   });
 
@@ -56,6 +56,7 @@ export function useChatWindow() {
     isMessagesLoading,
     messagesError,
     handleSendMessage,
+    notifyTyping,
     isDraft,
   };
 }
