@@ -11,6 +11,7 @@ import {
 } from "@mui/material";
 import { ChatItem } from "@shared/modules/chat/model/types";
 import { useChatStore } from "@/modules/chat/store/chat.store";
+import { formatMessageTime } from "@/shared/utils/formatMessageTime";
 
 interface ChatListProps {
   chats: ChatItem[];
@@ -28,6 +29,7 @@ export const ChatList = ({
   error,
 }: ChatListProps) => {
   const unreadByChat = useChatStore((state) => state.unreadByChat);
+  const typingByChat = useChatStore((state) => state.typingByChat);
 
   if (isLoading) {
     return (
@@ -59,6 +61,7 @@ export const ChatList = ({
     <List disablePadding>
       {chats.map((chat) => {
         const unread = unreadByChat[chat.id] ?? 0;
+        const isTyping = typingByChat[chat.id] ?? false;
 
         return (
           <ListItemButton
@@ -101,9 +104,29 @@ export const ChatList = ({
                 </Box>
               }
               secondary={
-                <Typography variant="body2" color="text.secondary" noWrap>
-                  {chat.lastMessage || "Нет сообщений"}
-                </Typography>
+                <Box
+                  component="span"
+                  sx={{ display: "flex", justifyContent: "space-between" }}
+                >
+                  <Typography
+                    component="span"
+                    variant="body2"
+                    color="text.secondary"
+                    noWrap
+                    sx={isTyping ? { fontStyle: "italic" } : undefined}
+                  >
+                    {isTyping ? "печатает..." : chat.lastMessage || "Нет сообщений"}
+                  </Typography>
+                  {chat.updatedAt && (
+                    <Typography
+                      component="span"
+                      variant="body2"
+                      color="text.secondary"
+                    >
+                      {formatMessageTime(chat.updatedAt)}
+                    </Typography>
+                  )}
+                </Box>
               }
             />
           </ListItemButton>

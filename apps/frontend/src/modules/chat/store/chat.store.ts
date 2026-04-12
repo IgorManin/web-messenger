@@ -12,6 +12,7 @@ type ChatStoreState = {
   messagesError: string | null;
   draftChat: DraftDirectChat | null;
   unreadByChat: Record<string, number>;
+  typingByChat: Record<string, boolean>;
 };
 
 type ChatStoreActions = {
@@ -27,6 +28,7 @@ type ChatStoreActions = {
   setDraftChat: (chat: DraftDirectChat | null) => void;
   incrementUnread: (chatId: string) => void;
   resetUnread: (chatId: string) => void;
+  setTyping: (chatId: string, isTyping: boolean) => void;
 };
 
 type ChatStore = ChatStoreState & ChatStoreActions;
@@ -41,6 +43,7 @@ const initialState: ChatStoreState = {
   messagesError: null,
   draftChat: null,
   unreadByChat: {},
+  typingByChat: {},
 };
 
 export const useChatStore = create<ChatStore>((set) => ({
@@ -120,4 +123,9 @@ export const useChatStore = create<ChatStore>((set) => ({
   setIsMessagesLoading: (value) => set({ isMessagesLoading: value }),
   setMessagesError: (error) => set({ messagesError: error }),
   setDraftChat: (chat) => set({ draftChat: chat }),
+
+  setTyping: (chatId, isTyping) =>
+    set((state) => ({
+      typingByChat: { ...state.typingByChat, [chatId]: isTyping },
+    })),
 }));
