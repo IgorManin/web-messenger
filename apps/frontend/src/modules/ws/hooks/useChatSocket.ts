@@ -5,7 +5,6 @@ import { useChatStore } from "@/modules/chat/store/chat.store";
 import { useUserStore } from "@/modules/user/store/user.store";
 import { MessageDto, ChatItem } from "@shared/modules/chat/model/types";
 import { handleIncomingMessageAction } from "@/modules/chat/actions/handleIncomingMessage.action";
-import { handleNewChatAction } from "@/modules/chat/actions/handleNewChat.action";
 import type { Socket } from "socket.io-client";
 import type {
   ClientToServerEvents,
@@ -27,7 +26,15 @@ export function useChatSocket(
     };
 
     const handleChatNew = (chat: ChatItem) => {
-      handleNewChatAction(chat);
+      const { chats, setChats, incrementUnread } = useChatStore.getState();
+      const exists = chats.some((c) => c.id === chat.id);
+      if (!exists) {
+        setChats([chat, ...chats]);
+        socket.emit("chat:join", { chatId: chat.id }, () => {});
+        if (chat.lastMessage) {
+          incrementUnread(chat.id);
+        }
+      }
     };
 
     const handleTypingUpdate = (payload: TypingEventDto) => {
