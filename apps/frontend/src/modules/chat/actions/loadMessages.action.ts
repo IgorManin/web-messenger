@@ -12,10 +12,11 @@ export async function loadMessagesAction(chatId: string) {
     setIsMessagesLoading,
     setMessagesError,
     setMessages,
-    messagesByChat,
+    markChatLoaded,
+    loadedChats,
   } = useChatStore.getState();
 
-  if (messagesByChat[chatId]) return;
+  if (loadedChats.has(chatId)) return;
 
   try {
     setIsMessagesLoading(true);
@@ -23,6 +24,7 @@ export async function loadMessagesAction(chatId: string) {
 
     const messages = await loadMessages(webChatApi, chatId);
     setMessages(chatId, messages);
+    markChatLoaded(chatId);
   } catch (error) {
     setMessagesError(getErrorMessage(error));
   } finally {
