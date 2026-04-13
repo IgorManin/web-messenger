@@ -13,6 +13,7 @@ type ChatStoreState = {
   draftChat: DraftDirectChat | null;
   unreadByChat: Record<string, number>;
   typingByChat: Record<string, boolean>;
+  loadedChats: Set<string>;
 };
 
 type ChatStoreActions = {
@@ -29,6 +30,7 @@ type ChatStoreActions = {
   incrementUnread: (chatId: string) => void;
   resetUnread: (chatId: string) => void;
   setTyping: (chatId: string, isTyping: boolean) => void;
+  markChatLoaded: (chatId: string) => void;
 };
 
 type ChatStore = ChatStoreState & ChatStoreActions;
@@ -44,6 +46,7 @@ const initialState: ChatStoreState = {
   draftChat: null,
   unreadByChat: {},
   typingByChat: {},
+  loadedChats: new Set<string>(),
 };
 
 export const useChatStore = create<ChatStore>((set) => ({
@@ -127,5 +130,10 @@ export const useChatStore = create<ChatStore>((set) => ({
   setTyping: (chatId, isTyping) =>
     set((state) => ({
       typingByChat: { ...state.typingByChat, [chatId]: isTyping },
+    })),
+
+  markChatLoaded: (chatId) =>
+    set((state) => ({
+      loadedChats: new Set([...state.loadedChats, chatId]),
     })),
 }));

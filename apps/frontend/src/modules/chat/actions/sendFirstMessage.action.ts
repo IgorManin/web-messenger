@@ -1,6 +1,7 @@
 import { useChatStore } from "../store/chat.store";
 import { webChatApi } from "../api/chat.api-adapter";
 import { CreateDirectFirstMessagePayload } from "@shared/modules/chat/model/types";
+import { getSocket } from "@/modules/ws/api/ws.client";
 
 export async function sendFirstMessageAction(
   payload: CreateDirectFirstMessagePayload,
@@ -19,4 +20,9 @@ export async function sendFirstMessageAction(
   setMessages(response.chat.id, [response.message]);
 
   setActiveChatId(response.chat.id);
+
+  const socket = getSocket();
+  if (socket) {
+    socket.emit("chat:join", { chatId: response.chat.id }, () => {});
+  }
 }
