@@ -46,7 +46,7 @@ export const ChatWindowHeader = ({ activeChat }: ChatWindowHeaderProps) => {
           <Typography
             variant="caption"
             color="text.secondary"
-            sx={{ visibility: !isTyping ? "visible" : "hidden" }}
+            sx={{ visibility: isTyping ? "visible" : "hidden" }}
           >
             печатает...
           </Typography>
