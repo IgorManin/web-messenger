@@ -1,26 +1,23 @@
 import { createTheme, Theme } from "@mui/material/styles";
+import { darkPalette, lightPalette } from "./palette.config";
 
 export function createAppTheme(mode: "light" | "dark"): Theme {
+  const palette = mode === "dark" ? darkPalette : lightPalette;
+
   return createTheme({
-    palette: {
-      mode,
-      primary: {
-        main: "#2196F3",
-      },
-      background:
-        mode === "dark"
-          ? { default: "#0d1b2a", paper: "#16213e" }
-          : { default: "#fafafa", paper: "#ffffff" },
-      text:
-        mode === "dark"
-          ? { primary: "#e8eaf6", secondary: "#4a6080" }
-          : { primary: "#1a1a1a", secondary: "#757575" },
-      divider: mode === "dark" ? "#1e2d4a" : "#e0e0e0",
-    },
+    palette,
     shape: {
       borderRadius: 8,
     },
     components: {
+      MuiPaper: {
+        styleOverrides: {
+          root: {
+            backgroundColor: "transparent",
+            backgroundImage: "none",
+          },
+        },
+      },
       MuiOutlinedInput: {
         styleOverrides: {
           root: {
