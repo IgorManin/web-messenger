@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { AvatarPicker } from "@/features/auth/AvatarPicker";
 import { uploadAvatar } from "@/modules/user/api/users.api";
+import Image from "next/image";
 
 type AuthMode = "login" | "register";
 
@@ -60,11 +61,27 @@ export function AuthForm({ mode }: AuthFormProps) {
       onSubmit={onSubmit}
       sx={{ maxWidth: 380, mx: "auto", mt: 8, display: "grid", gap: 2 }}
     >
-      <Typography variant="h5">{title}</Typography>
+      {mode === "login" && (
+        <Box sx={{ display: "flex", justifyContent: "center" }}>
+          <Image
+            src="/logo3.png"
+            alt="Logo"
+            width={120}
+            height={120}
+            priority
+          />
+        </Box>
+      )}
 
       {mode === "register" && (
         <AvatarPicker file={avatarFile} onChange={setAvatarFile} />
       )}
+
+      <Typography sx={{ fontSize: "14px" }}>
+        Максим петрович, первый мессенджер без англоицизмов
+      </Typography>
+
+      <Typography variant="h5">{title}</Typography>
 
       <TextField
         label="Email"
