@@ -127,6 +127,10 @@ export const ChatMessageList = ({
                         maxWidth: 480,
                         border: "1px solid",
                         borderColor: "divider",
+                        backgroundColor: isMine
+                          ? "rgba(21,69,189,0.15)"
+                          : "#283593",
+                        // "rgba(21,68,189,0.34)",
                       }}
                     >
                       <Typography
@@ -152,7 +156,6 @@ export const ChatMessageList = ({
               );
             })
           )}
-
         </Box>
       )}
       <Box ref={messagesEndRef} />

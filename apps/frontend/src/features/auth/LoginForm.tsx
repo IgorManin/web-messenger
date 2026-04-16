@@ -27,7 +27,6 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarError, setAvatarError] = useState("");
 
-  const title = mode === "login" ? "Вход" : "Регистрация";
   const submitText = mode === "login" ? "Войти" : "Создать аккаунт";
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -59,15 +58,22 @@ export function AuthForm({ mode }: AuthFormProps) {
     <Box
       component="form"
       onSubmit={onSubmit}
-      sx={{ maxWidth: 380, mx: "auto", mt: 8, display: "grid", gap: 2 }}
+      sx={{
+        maxWidth: 380,
+        mx: "auto",
+        mt: 8,
+        display: "flex",
+        flexDirection: "column",
+        gap: 2,
+      }}
     >
       {mode === "login" && (
         <Box sx={{ display: "flex", justifyContent: "center" }}>
           <Image
-            src="/logo3.png"
+            src="/favicon.png"
             alt="Logo"
-            width={120}
-            height={120}
+            width={130}
+            height={130}
             priority
           />
         </Box>
@@ -77,17 +83,11 @@ export function AuthForm({ mode }: AuthFormProps) {
         <AvatarPicker file={avatarFile} onChange={setAvatarFile} />
       )}
 
-      <Typography sx={{ fontSize: "14px" }}>
-        Максим петрович, первый мессенджер без англоицизмов
-      </Typography>
-
-      <Typography variant="h5">{title}</Typography>
-
       <TextField
-        label="Email"
+        label="Логин"
         value={currentLogin}
         onChange={(e) => setCurrentLogin(e.target.value)}
-        autoComplete="email"
+        autoComplete="off"
         required
       />
 
@@ -96,7 +96,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         type="password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        autoComplete={mode === "login" ? "current-password" : "new-password"}
+        autoComplete="off"
         required
       />
 
