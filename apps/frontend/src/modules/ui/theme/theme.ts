@@ -1,5 +1,6 @@
 import { createTheme, Theme } from "@mui/material/styles";
 import { darkPalette, lightPalette } from "./palette.config";
+import { colors } from "./colors";
 
 export function createAppTheme(mode: "light" | "dark"): Theme {
   const palette = mode === "dark" ? darkPalette : lightPalette;
@@ -10,29 +11,76 @@ export function createAppTheme(mode: "light" | "dark"): Theme {
       borderRadius: 8,
     },
     components: {
+      MuiCssBaseline: {
+        styleOverrides: {
+          "*::-webkit-scrollbar": {
+            width: "8px",
+          },
+          "*::-webkit-scrollbar-track": {
+            background: "transparent",
+          },
+          "*::-webkit-scrollbar-thumb": {
+            backgroundColor: colors.interactiveSelected,
+            borderRadius: "4px",
+            border: "2px solid transparent",
+            backgroundClip: "padding-box",
+          },
+          "*::-webkit-scrollbar-thumb:hover": {
+            backgroundColor: colors.paperBorder,
+          },
+        },
+      },
       MuiPaper: {
         styleOverrides: {
-          root: {
-            backgroundColor: "transparent",
+          root: ({ theme }) => ({
+            backgroundColor: theme.palette.background.default,
             backgroundImage: "none",
-          },
+            border: `1px solid ${theme.palette.interactive?.border}`,
+          }),
         },
       },
       MuiOutlinedInput: {
         styleOverrides: {
-          root: {
+          root: ({ theme }) => ({
+            ".MuiOutlinedInput-notchedOutline": {
+              borderColor: theme.palette.interactive?.border,
+            },
             "&:hover .MuiOutlinedInput-notchedOutline": {
-              borderColor: mode === "dark" ? "#1e6fa8" : undefined,
+              borderColor: theme.palette.interactive?.border,
+              boxShadow: theme.palette.interactive?.shadow,
             },
             "&.Mui-focused": {
-              backgroundColor: mode === "dark" ? "#1e3a5f" : "transparent",
+              backgroundColor: theme.palette.interactive?.focused,
             },
             "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-              borderColor: "#016db5",
-              boxShadow:
-                mode === "dark" ? "0 0 0 3px rgba(33, 150, 243, 0.15)" : "none",
+              borderColor: theme.palette.interactive?.border,
+              boxShadow: theme.palette.interactive?.shadowFocused,
             },
-          },
+          }),
+        },
+      },
+      MuiListItemButton: {
+        styleOverrides: {
+          root: ({ theme }) => ({
+            "&.Mui-selected": {
+              backgroundColor: theme.palette.interactive?.selected,
+              "&:hover": {
+                backgroundColor: theme.palette.interactive?.selected,
+              },
+            },
+            "&:hover": {
+              backgroundColor: theme.palette.interactive?.hover,
+            },
+            borderRadius: "10px",
+          }),
+        },
+      },
+      MuiAvatar: {
+        styleOverrides: {
+          root: ({ theme }) => ({
+            backgroundColor: theme.palette.avatar?.background,
+            color: theme.palette.avatar?.color,
+          }),
         },
       },
     },

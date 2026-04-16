@@ -45,6 +45,8 @@ export const ChatSidebar = () => {
         display: "grid",
         gridTemplateRows: "auto auto auto 1fr",
         overflow: "hidden",
+        padding: "0 10px 0 10px",
+        background: "rgba(9,30,50,0.66)",
       }}
     >
       <SidebarUserProfile user={user} />

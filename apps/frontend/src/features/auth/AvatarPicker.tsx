@@ -1,7 +1,6 @@
 "use client";
 
-import AddAPhotoIcon from "@mui/icons-material/AddAPhoto";
-import { Avatar, Box, IconButton, Typography } from "@mui/material";
+import { Avatar, Box, Typography } from "@mui/material";
 import { ChangeEvent, useEffect, useRef, useState } from "react";
 
 type AvatarPickerProps = {
@@ -55,36 +54,24 @@ export function AvatarPicker({ file, onChange }: AvatarPickerProps) {
 
   return (
     <Box display="flex" flexDirection="column" alignItems="center" gap={1}>
-      <Box position="relative">
-        <Avatar
-          src={previewUrl || undefined}
-          sx={{
-            width: 88,
-            height: 88,
-            cursor: "pointer",
-          }}
-          onClick={openFileDialog}
+      <Avatar
+        src={previewUrl || undefined}
+        sx={{
+          width: 140,
+          height: 140,
+          cursor: "pointer",
+          background: "transparent",
+        }}
+        onClick={openFileDialog}
+      >
+        <img
+          src="/avatar.png"
+          width={120}
+          height={120}
+          style={{ cursor: "pointer" }}
+          alt="Avatar"
         />
-
-        <IconButton
-          onClick={openFileDialog}
-          size="small"
-          sx={{
-            position: "absolute",
-            right: -6,
-            bottom: -6,
-            bgcolor: "background.paper",
-            border: "1px solid",
-            borderColor: "divider",
-          }}
-        >
-          <AddAPhotoIcon fontSize="small" />
-        </IconButton>
-      </Box>
-
-      <Typography variant="body2" color="text.secondary">
-        Выбрать аватар
-      </Typography>
+      </Avatar>
 
       <input
         ref={inputRef}

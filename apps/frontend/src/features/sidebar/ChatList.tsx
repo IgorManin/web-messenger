@@ -72,6 +72,7 @@ export const ChatList = ({
               borderBottom: "1px solid",
               borderColor: "divider",
               py: 1.5,
+              mb: 0.5,
             }}
           >
             <ListItemAvatar>
@@ -115,7 +116,9 @@ export const ChatList = ({
                     noWrap
                     sx={isTyping ? { fontStyle: "italic" } : undefined}
                   >
-                    {isTyping ? "печатает..." : chat.lastMessage || "Нет сообщений"}
+                    {isTyping
+                      ? "печатает..."
+                      : chat.lastMessage || "Нет сообщений"}
                   </Typography>
                   {chat.updatedAt && (
                     <Typography
