@@ -1,6 +1,8 @@
 export type CurrentUser = {
   id: number;
   login: string;
+  userName?: string;
+  email?: string;
   avatarUrl: string | null;
   createdAt?: string;
   updatedAt?: string;

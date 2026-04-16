@@ -1,4 +1,4 @@
-import { IsString, MinLength } from "class-validator";
+import { IsEmail, IsOptional, IsString, MinLength } from "class-validator";
 
 export class RegisterDto {
   @IsString()
@@ -12,4 +12,8 @@ export class RegisterDto {
   //todo поменять потом на 4
   @MinLength(1, { message: "Пароль должен содержать более 4 символов" })
   password!: string;
+
+  @IsEmail({}, { message: "Некорректный email" })
+  @IsOptional()
+  email?: string;
 }

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service.js";
 
 @Injectable()
@@ -15,6 +19,8 @@ export class UsersService {
       select: {
         id: true,
         login: true,
+        userName: true,
+        email: true,
         avatarUrl: true,
         createdAt: true,
         updatedAt: true,
@@ -39,7 +45,29 @@ export class UsersService {
     });
   }
 
-  createUser(data: { login: string; passwordHash: string }) {
+  findByUserName(userName: string) {
+    return this.prisma.user.findUnique({ where: { userName } });
+  }
+
+  async generateUserName(login: string): Promise<string> {
+    const sanitized = login.replace(/[^a-zA-Zа-яА-ЯёЁ0-9_]/g, "");
+    const base = `@${sanitized}`;
+
+    for (let i = 1; i <= 10; i++) {
+      const candidate = i === 1 ? base : `${base}${i}`;
+      const taken = await this.findByUserName(candidate);
+      if (!taken) return candidate;
+    }
+
+    throw new ConflictException("Не удалось сгенерировать уникальный userName");
+  }
+
+  createUser(data: {
+    login: string;
+    passwordHash: string;
+    userName?: string;
+    email?: string;
+  }) {
     return this.prisma.user.create({ data });
   }
 

@@ -51,18 +51,29 @@ export class AuthService {
     await this.usersService.updateRefreshTokenHash(userId, hash);
   }
 
-  async register(login: string, password: string) {
+  async register(login: string, password: string, email?: string) {
     const existing = await this.usersService.findByLogin(login);
     if (existing) throw new ConflictException("Логин уже занят");
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const user = await this.usersService.createUser({ login, passwordHash });
+    const userName = await this.usersService.generateUserName(login);
+    const user = await this.usersService.createUser({
+      login,
+      passwordHash,
+      userName,
+      email,
+    });
 
     const tokens = await this.issueTokens({ id: user.id, login: user.login });
     await this.setRefreshHash(user.id, tokens.refreshToken);
 
     return {
-      user: { id: user.id, login: user.login, createdAt: user.createdAt },
+      user: {
+        id: user.id,
+        login: user.login,
+        userName: user.userName,
+        createdAt: user.createdAt,
+      },
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
     };

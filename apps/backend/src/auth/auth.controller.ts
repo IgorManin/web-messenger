@@ -37,7 +37,11 @@ export class AuthController {
     @Body() dto: RegisterDto,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const result = await this.authService.register(dto.login, dto.password);
+    const result = await this.authService.register(
+      dto.login,
+      dto.password,
+      dto.email,
+    );
     res.cookie("refresh", result.refreshToken, this.getCookieOptions());
     return { user: result.user, accessToken: result.accessToken };
   }
