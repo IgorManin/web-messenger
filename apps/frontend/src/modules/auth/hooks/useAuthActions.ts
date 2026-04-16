@@ -1,7 +1,7 @@
 import { useAuthStore } from "@/modules/auth/store/auth.store";
 import { authApi } from "@/modules/auth/api/auth.api";
 import { useMutation } from "@tanstack/react-query";
-import { LoginDto } from "@/modules/auth/types";
+import { LoginDto, RegisterDto } from "@/modules/auth/types";
 import { useRouter } from "next/navigation";
 
 export const useAuthActions = () => {
@@ -15,7 +15,7 @@ export const useAuthActions = () => {
   });
 
   const register = useMutation({
-    mutationFn: (dto: LoginDto) => authApi.register(dto),
+    mutationFn: (dto: RegisterDto) => authApi.register(dto),
     onSuccess: (data) => setAccessToken(data.accessToken),
   });
 

@@ -1,4 +1,4 @@
-import { AuthTokensResponse, LoginDto } from "@/modules/auth/types";
+import { AuthTokensResponse, LoginDto, RegisterDto } from "@/modules/auth/types";
 import { apiClient } from "@/shared/api/apiClient";
 
 export const authApi = {
@@ -8,7 +8,7 @@ export const authApi = {
       body: JSON.stringify(dto),
     }),
 
-  register: (dto: LoginDto) =>
+  register: (dto: RegisterDto) =>
     apiClient<AuthTokensResponse>("/auth/register", {
       method: "POST",
       body: JSON.stringify(dto),

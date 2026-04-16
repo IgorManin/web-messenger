@@ -7,10 +7,12 @@ datasource db {
 }
 
 model User {
-  id               Int               @id @default(autoincrement())
-  login            String            @unique
-  passwordHash     String
-  refreshTokenHash String?
+id               Int      @id @default(autoincrement())
+login            String   @unique
+userName         String?  @unique
+email            String?  @unique
+passwordHash     String
+refreshTokenHash String?
 
   chatParticipants ChatParticipant[]
   messages         Message[]

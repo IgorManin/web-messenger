@@ -24,16 +24,23 @@ export function AuthForm({ mode }: AuthFormProps) {
 
   const [currentLogin, setCurrentLogin] = useState("");
   const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarError, setAvatarError] = useState("");
 
   const submitText = mode === "login" ? "Войти" : "Создать аккаунт";
 
+  console.log("email", email);
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAvatarError("");
 
-    await mutation.mutateAsync({ login: currentLogin, password });
+    await mutation.mutateAsync({
+      login: currentLogin,
+      password,
+      email: email || undefined,
+    });
 
     if (mode === "register" && avatarFile) {
       try {
@@ -99,6 +106,17 @@ export function AuthForm({ mode }: AuthFormProps) {
         autoComplete="off"
         required
       />
+
+      {mode === "register" && (
+        <TextField
+          label="Email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          autoComplete="off"
+          helperText="Рекомендуем указать — понадобится для сброса пароля"
+        />
+      )}
 
       {mutation.isError && (
         <Typography variant="body2" color="error">
