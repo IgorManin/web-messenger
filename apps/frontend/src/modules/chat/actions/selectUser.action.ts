@@ -5,7 +5,6 @@ export function selectUserAction(user: UserSearchResult) {
   const { chats, setActiveChatId, setDraftChat, draftChat } =
     useChatStore.getState();
 
-  // Ищем существующий чат с этим пользователем
   const existingChat = chats.find((chat) => chat.companion?.id === user.id);
 
   if (existingChat) {
@@ -14,7 +13,6 @@ export function selectUserAction(user: UserSearchResult) {
     return;
   }
 
-  // Если draft уже открыт для этого юзера — просто активируем
   if (draftChat?.companion.id === user.id) {
     setActiveChatId(draftChat.id);
     return;
