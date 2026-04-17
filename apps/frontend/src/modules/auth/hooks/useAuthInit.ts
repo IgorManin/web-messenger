@@ -1,25 +1,18 @@
 "use client";
 
 import { useAuthStore } from "@/modules/auth/store/auth.store";
-import { authApi } from "@/modules/auth/api/auth.api";
+import { refreshTokenAction } from "@/modules/auth/actions/refreshToken.action";
 import { useEffect } from "react";
 
 export const useAuthInit = () => {
-  const setAccessToken = useAuthStore((s) => s.setAccessToken);
   const setInitialized = useAuthStore((s) => s.setInitialized);
 
   useEffect(() => {
     let cancelled = false;
 
     const run = async () => {
-      try {
-        const data = await authApi.refresh();
-        if (!cancelled) setAccessToken(data.accessToken);
-      } catch {
-        // не залогинен — ок
-      } finally {
-        if (!cancelled) setInitialized(true);
-      }
+      await refreshTokenAction();
+      if (!cancelled) setInitialized(true);
     };
 
     void run();
@@ -27,5 +20,5 @@ export const useAuthInit = () => {
     return () => {
       cancelled = true;
     };
-  }, [setAccessToken, setInitialized]);
+  }, [setInitialized]);
 };
