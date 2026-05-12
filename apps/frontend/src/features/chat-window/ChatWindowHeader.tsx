@@ -16,6 +16,8 @@ export const ChatWindowHeader = ({ activeChat }: ChatWindowHeaderProps) => {
   const typingByChat = useChatStore((state) => state.typingByChat);
   const isTyping = typingByChat[activeChat.id] ?? false;
 
+  console.log("isTyping", isTyping);
+
   return (
     <Paper variant="outlined" sx={{ p: 2 }}>
       <Box
@@ -23,11 +25,12 @@ export const ChatWindowHeader = ({ activeChat }: ChatWindowHeaderProps) => {
           display: "flex",
           alignItems: "flex-start",
           gap: 1,
+          border: "1px solid red",
         }}
       >
-        <Avatar src={avatarUrl ?? undefined} sx={{ width: 36, height: 36 }}>
-          {initials}
-        </Avatar>
+        {/*<Avatar src={avatarUrl ?? undefined} sx={{ width: 36, height: 36 }}>*/}
+        {/*  {initials}*/}
+        {/*</Avatar>*/}
         <Box
           sx={{
             display: "flex",
@@ -35,18 +38,22 @@ export const ChatWindowHeader = ({ activeChat }: ChatWindowHeaderProps) => {
             justifyContent: "center",
           }}
         >
-          <Typography
-            sx={{
-              lineHeight: 1,
-            }}
-            variant="h6"
-          >
-            {activeChat.title}
-          </Typography>
+          {/*<Typography*/}
+          {/*  sx={{*/}
+          {/*    lineHeight: 1,*/}
+          {/*  }}*/}
+          {/*  variant="h6"*/}
+          {/*>*/}
+          {/*  {activeChat.title}*/}
+          {/*</Typography>*/}
           <Typography
             variant="caption"
             color="text.secondary"
-            sx={{ visibility: isTyping ? "visible" : "hidden" }}
+            sx={{
+              visibility: isTyping ? "visible" : "hidden",
+              border: "1px solid red",
+              color: "red",
+            }}
           >
             печатает...
           </Typography>
