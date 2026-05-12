@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
 import { PassportStrategy } from '@nestjs/passport'
 import { Strategy } from 'passport-jwt'
 import { JwtPayload } from '../types/jwt-payload.type.js'
@@ -9,15 +10,10 @@ const cookieExtractor = (req: any): string | null => {
 
 @Injectable()
 export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
-    constructor() {
-        const secret = process.env.JWT_REFRESH_SECRET ?? process.env.JWT_SECRET
-        if (!secret) {
-            throw new Error('JWT refresh secret is not set (JWT_REFRESH_SECRET/JWT_SECRET)')
-        }
-
+    constructor(config: ConfigService) {
         super({
             jwtFromRequest: cookieExtractor,
-            secretOrKey: secret,
+            secretOrKey: config.get<string>('jwt.refreshSecret')!,
             ignoreExpiration: false,
         })
     }

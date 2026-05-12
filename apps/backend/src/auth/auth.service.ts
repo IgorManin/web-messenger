@@ -4,6 +4,7 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import * as bcrypt from "bcrypt";
+import { ConfigService } from "@nestjs/config";
 import { UsersService } from "../users/users.service.js";
 import { JwtService } from "@nestjs/jwt";
 import type { SignOptions } from "jsonwebtoken";
@@ -13,34 +14,20 @@ export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
+    private config: ConfigService,
   ) {}
-
-  private get accessSecret() {
-    return process.env.JWT_ACCESS_SECRET ?? process.env.JWT_SECRET ?? "dev";
-  }
-  private get refreshSecret() {
-    return process.env.JWT_REFRESH_SECRET ?? process.env.JWT_SECRET ?? "dev";
-  }
-  private get accessExpiresIn(): SignOptions["expiresIn"] {
-    return (process.env.JWT_ACCESS_EXPIRES_IN ??
-      "15m") as SignOptions["expiresIn"];
-  }
-  private get refreshExpiresIn(): SignOptions["expiresIn"] {
-    return (process.env.JWT_REFRESH_EXPIRES_IN ??
-      "7d") as SignOptions["expiresIn"];
-  }
 
   private async issueTokens(user: { id: number; login: string }) {
     const payload = { sub: user.id, login: user.login };
 
     const accessToken = await this.jwtService.signAsync(payload, {
-      secret: this.accessSecret,
-      expiresIn: this.accessExpiresIn,
+      secret: this.config.get<string>('jwt.accessSecret'),
+      expiresIn: this.config.get<string>('jwt.accessExpiresIn') as SignOptions["expiresIn"],
     });
 
     const refreshToken = await this.jwtService.signAsync(payload, {
-      secret: this.refreshSecret,
-      expiresIn: this.refreshExpiresIn,
+      secret: this.config.get<string>('jwt.refreshSecret'),
+      expiresIn: this.config.get<string>('jwt.refreshExpiresIn') as SignOptions["expiresIn"],
     });
 
     return { accessToken, refreshToken };

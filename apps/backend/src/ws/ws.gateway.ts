@@ -7,6 +7,7 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
 } from "@nestjs/websockets";
+import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import { ForbiddenException, Logger, NotFoundException } from "@nestjs/common";
 import type { Server, Socket } from "socket.io";
@@ -63,6 +64,7 @@ export class WsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private readonly jwt: JwtService,
     private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
   ) {}
 
   handleConnection(client: Socket) {
@@ -74,7 +76,7 @@ export class WsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
 
       const payload = this.jwt.verify<JwtPayload>(token, {
-        secret: process.env.JWT_ACCESS_SECRET,
+        secret: this.config.get<string>("jwt.accessSecret"),
       });
 
       client.data.user = { id: payload.sub, login: payload.login };
@@ -243,57 +245,5 @@ export class WsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     throw new ForbiddenException("Нет доступа к этому чату");
-  }
-
-  private async buildChatListItem(
-    chatId: string,
-    currentUserId: number,
-  ): Promise<ChatNewPayload> {
-    const chat = await this.prisma.chat.findUnique({
-      where: {
-        id: chatId,
-      },
-      include: {
-        messages: {
-          orderBy: {
-            createdAt: "desc",
-          },
-          take: 1,
-        },
-        participants: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                login: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    if (!chat) {
-      throw new NotFoundException("Чат не найден");
-    }
-
-    const lastMessage = chat.messages[0] ?? null;
-
-    const companion =
-      chat.type === "direct"
-        ? (chat.participants.find(
-            (participant) => participant.userId !== currentUserId,
-          )?.user ?? null)
-        : null;
-
-    return {
-      id: chat.id,
-      title:
-        chat.type === "direct" ? (companion?.login ?? chat.title) : chat.title,
-      type: chat.type,
-      lastMessage: lastMessage?.text ?? "",
-      updatedAt: (lastMessage?.createdAt ?? chat.updatedAt).toISOString(),
-      companion,
-    };
   }
 }
