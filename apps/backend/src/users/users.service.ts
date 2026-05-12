@@ -1,115 +1,39 @@
-import {
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from "@nestjs/common";
-import { PrismaService } from "../prisma/prisma.service.js";
+import { Inject, Injectable, NotFoundException } from '@nestjs/common'
+import { USERS_REPOSITORY } from './users.repository.interface.js'
+import type { IUsersRepository, CreateUserData } from './users.repository.interface.js'
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    @Inject(USERS_REPOSITORY) private readonly usersRepository: IUsersRepository,
+  ) {}
 
   findByLogin(login: string) {
-    return this.prisma.user.findUnique({ where: { login } });
+    return this.usersRepository.findByLogin(login)
   }
 
   async findById(id: number) {
-    const user = await this.prisma.user.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        login: true,
-        userName: true,
-        email: true,
-        avatarUrl: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+    const user = await this.usersRepository.findById(id)
+    if (!user) throw new NotFoundException('Пользователь не найден')
 
-    if (!user) {
-      throw new NotFoundException("Пользователь не найден");
-    }
-
-    return user;
+    const { passwordHash, refreshTokenHash, ...safe } = user
+    return safe
   }
 
-  findByIdWithRefresh(id: number) {
-    return this.prisma.user.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        login: true,
-        refreshTokenHash: true,
-      },
-    });
+  generateUserName(login: string) {
+    return this.usersRepository.generateUserName(login)
   }
 
-  findByUserName(userName: string) {
-    return this.prisma.user.findUnique({ where: { userName } });
-  }
-
-  async generateUserName(login: string): Promise<string> {
-    const sanitized = login.replace(/[^a-zA-Zа-яА-ЯёЁ0-9_]/g, "");
-    const base = `@${sanitized}`;
-
-    for (let i = 1; i <= 10; i++) {
-      const candidate = i === 1 ? base : `${base}${i}`;
-      const taken = await this.findByUserName(candidate);
-      if (!taken) return candidate;
-    }
-
-    throw new ConflictException("Не удалось сгенерировать уникальный userName");
-  }
-
-  createUser(data: {
-    login: string;
-    passwordHash: string;
-    userName?: string;
-    email?: string;
-  }) {
-    return this.prisma.user.create({ data });
-  }
-
-  updateRefreshTokenHash(userId: number, refreshTokenHash: string | null) {
-    return this.prisma.user.update({
-      where: { id: userId },
-      data: { refreshTokenHash },
-    });
+  createUser(data: CreateUserData) {
+    return this.usersRepository.createUser(data)
   }
 
   searchUsers(login: string, currentUserId: number) {
-    return this.prisma.user.findMany({
-      where: {
-        id: {
-          not: currentUserId,
-        },
-        login: {
-          contains: login,
-          mode: "insensitive",
-        },
-      },
-      select: {
-        id: true,
-        login: true,
-        avatarUrl: true,
-      },
-      take: 20,
-      orderBy: {
-        login: "asc",
-      },
-    });
+    return this.usersRepository.searchUsers(login, currentUserId)
   }
 
   async updateAvatar(userId: number, avatarUrl: string) {
-    return this.prisma.user.update({
-      where: { id: userId },
-      data: { avatarUrl },
-      select: {
-        id: true,
-        login: true,
-        avatarUrl: true,
-      },
-    });
+    const user = await this.usersRepository.updateAvatar(userId, avatarUrl)
+    return { id: user.id, login: user.login, avatarUrl: user.avatarUrl }
   }
 }

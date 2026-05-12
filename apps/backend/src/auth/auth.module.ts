@@ -1,24 +1,21 @@
 import { Module } from '@nestjs/common'
-import { ConfigModule, ConfigService } from '@nestjs/config'
-import { UsersModule } from "../users/users.module.js";
-import { AuthController } from "./auth.controller.js";
-import { AuthService } from "./auth.service.js";
-import { JwtModule } from '@nestjs/jwt'
-import { JwtAccessStrategy } from "./strategies/jwt-access.strategy.js";
-import { JwtRefreshStrategy } from "./strategies/jwt-refresh.strategy.js";
+import { UsersModule } from '../users/users.module.js'
+import { AuthController } from './auth.controller.js'
+import { AuthService } from './auth.service.js'
+import { TokenModule } from '../token/token.module.js'
+import { AuthRepository } from './auth.repository.js'
+import { AUTH_REPOSITORY } from './auth.repository.interface.js'
+import { JwtAccessStrategy } from './strategies/jwt-access.strategy.js'
+import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy.js'
 
 @Module({
-    imports: [
-        UsersModule,
-        JwtModule.registerAsync({
-            imports: [ConfigModule],
-            inject: [ConfigService],
-            useFactory: (config: ConfigService) => ({
-                secret: config.get<string>('jwt.accessSecret')!,
-            }),
-        }),
-    ],
-    controllers: [AuthController],
-    providers: [AuthService, JwtAccessStrategy, JwtRefreshStrategy],
+  imports: [UsersModule, TokenModule],
+  controllers: [AuthController],
+  providers: [
+    AuthService,
+    { provide: AUTH_REPOSITORY, useClass: AuthRepository },
+    JwtAccessStrategy,
+    JwtRefreshStrategy,
+  ],
 })
 export class AuthModule {}

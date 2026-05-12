@@ -1,24 +1,24 @@
 import { Injectable } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
 import { PassportStrategy } from '@nestjs/passport'
 import { Strategy } from 'passport-jwt'
-import { JwtPayload } from '../types/jwt-payload.type.js'
+import { TokenService } from '../../token/token.service.js'
+import type { JwtPayload } from '../../token/token.types.js'
 
 const cookieExtractor = (req: any): string | null => {
-    return req?.cookies?.refresh ?? null
+  return req?.cookies?.refresh ?? null
 }
 
 @Injectable()
 export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
-    constructor(config: ConfigService) {
-        super({
-            jwtFromRequest: cookieExtractor,
-            secretOrKey: config.get<string>('jwt.refreshSecret')!,
-            ignoreExpiration: false,
-        })
-    }
+  constructor(tokenService: TokenService) {
+    super({
+      jwtFromRequest: cookieExtractor,
+      secretOrKey: tokenService.getRefreshSecret(),
+      ignoreExpiration: false,
+    })
+  }
 
-    validate(payload: JwtPayload) {
-        return { id: payload.sub, login: payload.login }
-    }
+  validate(payload: JwtPayload) {
+    return { id: Number(payload.sub), login: payload.login }
+  }
 }
