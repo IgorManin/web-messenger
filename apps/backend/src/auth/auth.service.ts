@@ -1,3 +1,4 @@
+import { createHash } from 'crypto'
 import {
   ConflictException,
   Inject,
@@ -9,14 +10,23 @@ import { UsersService } from '../users/users.service.js'
 import { TokenService } from '../token/token.service.js'
 import { AUTH_REPOSITORY } from './auth.repository.interface.js'
 import type { IAuthRepository } from './auth.repository.interface.js'
+import { SESSION_REPOSITORY } from '../session/session.repository.interface.js'
+import type { ISessionRepository } from '../session/session.repository.interface.js'
+
+const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
 @Injectable()
 export class AuthService {
   constructor(
     @Inject(AUTH_REPOSITORY) private readonly authRepository: IAuthRepository,
+    @Inject(SESSION_REPOSITORY) private readonly sessionRepository: ISessionRepository,
     private readonly tokenService: TokenService,
     private readonly usersService: UsersService,
   ) {}
+
+  private hashToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex')
+  }
 
   private async issueTokens(user: { id: number; login: string }) {
     const payload = { sub: user.id, login: user.login }
@@ -27,9 +37,10 @@ export class AuthService {
     return { accessToken, refreshToken }
   }
 
-  private async setRefreshHash(userId: number, refreshToken: string) {
-    const hash = await bcrypt.hash(refreshToken, 10)
-    await this.authRepository.updateRefreshTokenHash(userId, hash)
+  private async createSession(userId: number, refreshToken: string): Promise<void> {
+    const hash = this.hashToken(refreshToken)
+    const expiresAt = new Date(Date.now() + SESSION_TTL_MS)
+    await this.sessionRepository.create(userId, hash, expiresAt)
   }
 
   async register(login: string, password: string, email?: string) {
@@ -41,7 +52,7 @@ export class AuthService {
     const user = await this.usersService.createUser({ login, passwordHash, userName, email })
 
     const tokens = await this.issueTokens({ id: user.id, login: user.login })
-    await this.setRefreshHash(user.id, tokens.refreshToken)
+    await this.createSession(user.id, tokens.refreshToken)
 
     return {
       user: {
@@ -63,26 +74,45 @@ export class AuthService {
     if (!ok) throw new UnauthorizedException('Неверный логин или пароль')
 
     const tokens = await this.issueTokens({ id: user.id, login: user.login })
-    await this.setRefreshHash(user.id, tokens.refreshToken)
+    await this.createSession(user.id, tokens.refreshToken)
 
     return tokens
   }
 
-  async refresh(userId: number, refreshToken: string) {
-    const user = await this.authRepository.findByIdWithRefresh(userId)
-    if (!user?.refreshTokenHash) throw new UnauthorizedException('Нет активной сессии')
+  async refresh(user: { id: number; login: string }, refreshToken: string) {
+    const hash = this.hashToken(refreshToken)
+    const session = await this.sessionRepository.findByTokenHash(hash)
 
-    const ok = await bcrypt.compare(refreshToken, user.refreshTokenHash)
-    if (!ok) throw new UnauthorizedException('Refresh token невалиден')
+    if (!session) throw new UnauthorizedException('Нет активной сессии')
+
+    if (session.used) {
+      await this.sessionRepository.deleteAllByUserId(session.userId)
+      throw new UnauthorizedException('Сессия недействительна')
+    }
+
+    if (session.expiresAt < new Date()) {
+      await this.sessionRepository.deleteById(session.id)
+      throw new UnauthorizedException('Сессия истекла')
+    }
 
     const tokens = await this.issueTokens({ id: user.id, login: user.login })
-    await this.setRefreshHash(user.id, tokens.refreshToken)
+    const newHash = this.hashToken(tokens.refreshToken)
+    const newExpiresAt = new Date(Date.now() + SESSION_TTL_MS)
+    await this.sessionRepository.rotate(session.id, user.id, newHash, newExpiresAt)
 
     return tokens
   }
 
-  async logout(userId: number) {
-    await this.authRepository.updateRefreshTokenHash(userId, null)
+  async logout(userId: number, refreshToken?: string) {
+    if (refreshToken) {
+      const hash = this.hashToken(refreshToken)
+      const session = await this.sessionRepository.findByTokenHash(hash)
+      if (session) {
+        await this.sessionRepository.deleteById(session.id)
+      }
+    } else {
+      await this.sessionRepository.deleteAllByUserId(userId)
+    }
     return { ok: true }
   }
 }

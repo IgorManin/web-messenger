@@ -23,13 +23,6 @@ export class UsersRepository implements IUsersRepository {
     return this.prisma.user.create({ data })
   }
 
-  async updateRefreshTokenHash(userId: number, hash: string | null): Promise<void> {
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { refreshTokenHash: hash },
-    })
-  }
-
   updateAvatar(userId: number, avatarUrl: string): Promise<User> {
     return this.prisma.user.update({
       where: { id: userId },
