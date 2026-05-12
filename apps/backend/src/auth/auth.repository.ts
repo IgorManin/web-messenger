@@ -9,22 +9,4 @@ export class AuthRepository implements IAuthRepository {
   findByLogin(login: string) {
     return this.prisma.user.findUnique({ where: { login } })
   }
-
-  findByIdWithRefresh(id: number) {
-    return this.prisma.user.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        login: true,
-        refreshTokenHash: true,
-      },
-    })
-  }
-
-  async updateRefreshTokenHash(userId: number, hash: string | null): Promise<void> {
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { refreshTokenHash: hash },
-    })
-  }
 }

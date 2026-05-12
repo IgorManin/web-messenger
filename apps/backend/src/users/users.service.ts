@@ -16,7 +16,7 @@ export class UsersService {
     const user = await this.usersRepository.findById(id)
     if (!user) throw new NotFoundException('Пользователь не найден')
 
-    const { passwordHash, refreshTokenHash, ...safe } = user
+    const { passwordHash, ...safe } = user
     return safe
   }
 

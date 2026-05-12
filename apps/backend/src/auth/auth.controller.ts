@@ -70,7 +70,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const refreshToken = req.cookies?.refresh;
-    const tokens = await this.authService.refresh(user.id, refreshToken);
+    const tokens = await this.authService.refresh(user, refreshToken);
     res.cookie("refresh", tokens.refreshToken, this.getCookieOptions());
     return { accessToken: tokens.accessToken };
   }
@@ -79,9 +79,10 @@ export class AuthController {
   @Post("logout")
   async logout(
     @CurrentUser() user: any,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    await this.authService.logout(user.id);
+    await this.authService.logout(user.id, req.cookies?.refresh);
     res.clearCookie("refresh", this.getCookieOptions());
     return { ok: true };
   }

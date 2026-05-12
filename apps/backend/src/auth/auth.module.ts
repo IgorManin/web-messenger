@@ -7,9 +7,10 @@ import { AuthRepository } from './auth.repository.js'
 import { AUTH_REPOSITORY } from './auth.repository.interface.js'
 import { JwtAccessStrategy } from './strategies/jwt-access.strategy.js'
 import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy.js'
+import { SessionModule } from '../session/session.module.js'
 
 @Module({
-  imports: [UsersModule, TokenModule],
+  imports: [UsersModule, TokenModule, SessionModule],
   controllers: [AuthController],
   providers: [
     AuthService,
