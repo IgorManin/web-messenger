@@ -8,6 +8,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import { UsersService } from "./users.service.js";
 import { JwtAccessGuard } from "../auth/guards/jwt-access.guard.js";
 import { CurrentUser } from "../auth/decorators/current-user.decorator.js";
@@ -34,6 +35,7 @@ export class UsersController {
     return this.usersService.findById(user.id);
   }
 
+  @Throttle({ default: { ttl: 60000, limit: 30 } })
   @Get("search")
   searchUsers(
     @Query() queryDto: SearchUsersDto,
