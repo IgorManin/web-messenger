@@ -7,25 +7,23 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
 } from '@nestjs/websockets'
-import { ForbiddenException, Logger, NotFoundException } from '@nestjs/common'
+import {
+  ForbiddenException,
+  Inject,
+  Logger,
+  NotFoundException,
+  UseFilters,
+  UsePipes,
+  ValidationPipe,
+} from '@nestjs/common'
 import type { Server, Socket } from 'socket.io'
-import { PrismaService } from '../prisma/prisma.service.js'
 import { TokenService } from '../token/token.service.js'
-
-type ChatJoinDto = {
-  chatId: string
-}
-
-type SendMessageDto = {
-  chatId: string
-  text: string
-  clientMessageId?: string
-}
-
-type TypingUpdateDto = {
-  chatId: string
-  isTyping: boolean
-}
+import { CHAT_REPOSITORY } from '../chat/chat.repository.interface.js'
+import type { IChatRepository } from '../chat/chat.repository.interface.js'
+import { MESSAGE_REPOSITORY } from '../chat/message.repository.interface.js'
+import type { IMessageRepository } from '../chat/message.repository.interface.js'
+import { GlobalExceptionFilter } from '../common/filters/global-exception.filter.js'
+import { ChatJoinDto, SendMessageDto, TypingUpdateDto } from './dto/ws.dto.js'
 
 type ChatNewPayload = {
   id: string
@@ -39,6 +37,8 @@ type ChatNewPayload = {
   } | null
 }
 
+@UseFilters(GlobalExceptionFilter)
+@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 @WebSocketGateway({
   namespace: '/ws',
   cors: {
@@ -54,7 +54,8 @@ export class WsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   constructor(
     private readonly tokenService: TokenService,
-    private readonly prisma: PrismaService,
+    @Inject(CHAT_REPOSITORY) private readonly chatRepository: IChatRepository,
+    @Inject(MESSAGE_REPOSITORY) private readonly messageRepository: IMessageRepository,
   ) {}
 
   handleConnection(client: Socket) {
@@ -93,9 +94,9 @@ export class WsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     this.ensureAuth(client)
 
-    const user = client.data.user as { id: string; login?: string }
+    const userId = this.parseUserId(client)
 
-    await this.ensureChatAccess(dto.chatId, Number(user.id))
+    await this.ensureChatAccess(dto.chatId, userId)
 
     await client.join(`chat:${dto.chatId}`)
 
@@ -109,24 +110,21 @@ export class WsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     this.ensureAuth(client)
 
-    const user = client.data.user as { id: string; login?: string }
-    const userId = Number(user.id)
+    const userId = this.parseUserId(client)
     const text = dto.text.trim()
 
     if (!text) {
-      throw new Error('Message text is empty')
+      throw new ForbiddenException('Текст сообщения не может быть пустым')
     }
 
     await this.ensureChatAccess(dto.chatId, userId)
 
     if (dto.clientMessageId) {
-      const existingMessage = await this.prisma.message.findFirst({
-        where: {
-          chatId: dto.chatId,
-          clientMessageId: dto.clientMessageId,
-          authorId: userId,
-        },
-      })
+      const existingMessage = await this.messageRepository.findByClientMessageId(
+        dto.chatId,
+        dto.clientMessageId,
+        userId,
+      )
 
       if (existingMessage) {
         const mappedExistingMessage = {
@@ -144,19 +142,14 @@ export class WsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
     }
 
-    const createdMessage = await this.prisma.message.create({
-      data: {
-        chatId: dto.chatId,
-        authorId: userId,
-        text,
-        clientMessageId: dto.clientMessageId ?? null,
-      },
+    const createdMessage = await this.messageRepository.create({
+      chatId: dto.chatId,
+      authorId: userId,
+      text,
+      clientMessageId: dto.clientMessageId ?? null,
     })
 
-    await this.prisma.chat.update({
-      where: { id: dto.chatId },
-      data: { updatedAt: createdMessage.createdAt },
-    })
+    await this.chatRepository.updateTimestamp(dto.chatId, createdMessage.createdAt)
 
     const message = {
       id: createdMessage.id,
@@ -180,8 +173,9 @@ export class WsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.ensureAuth(client)
 
     const user = client.data.user as { id: string; login?: string }
+    const userId = this.parseUserId(client)
 
-    await this.ensureChatAccess(dto.chatId, Number(user.id))
+    await this.ensureChatAccess(dto.chatId, userId)
 
     client.to(`chat:${dto.chatId}`).emit('typing:update', {
       chatId: dto.chatId,
@@ -201,21 +195,25 @@ export class WsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private ensureAuth(client: Socket) {
     if (!client.data?.user?.id) {
       client.disconnect(true)
-      throw new Error('Unauthorized')
+      throw new ForbiddenException('Unauthorized')
     }
   }
 
+  private parseUserId(client: Socket): number {
+    const userId = parseInt(String(client.data.user.id), 10)
+    if (isNaN(userId)) {
+      client.disconnect(true)
+      throw new ForbiddenException('Invalid user identity')
+    }
+    return userId
+  }
+
   private async ensureChatAccess(chatId: string, userId: number) {
-    const participant = await this.prisma.chatParticipant.findUnique({
-      where: { chatId_userId: { chatId, userId } },
-    })
+    const participant = await this.chatRepository.findParticipant(chatId, userId)
 
     if (participant) return
 
-    const chat = await this.prisma.chat.findUnique({
-      where: { id: chatId },
-      select: { id: true },
-    })
+    const chat = await this.chatRepository.findById(chatId)
 
     if (!chat) throw new NotFoundException('Чат не найден')
 

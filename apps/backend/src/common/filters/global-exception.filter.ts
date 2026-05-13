@@ -8,12 +8,32 @@ import {
 } from '@nestjs/common';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client';
 import type { Response } from 'express';
+import type { Socket } from 'socket.io';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(GlobalExceptionFilter.name);
 
   catch(exception: unknown, host: ArgumentsHost) {
+    if (host.getType() === 'ws') {
+      const client = host.switchToWs().getClient<Socket>();
+
+      if (exception instanceof HttpException) {
+        client.emit('error', {
+          statusCode: exception.getStatus(),
+          message: exception.message,
+        });
+        return;
+      }
+
+      this.logger.error('WS unhandled exception', exception instanceof Error ? exception.stack : String(exception));
+      client.emit('error', {
+        statusCode: 500,
+        message: 'Внутренняя ошибка сервера',
+      });
+      return;
+    }
+
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
 
