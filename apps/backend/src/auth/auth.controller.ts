@@ -7,6 +7,7 @@ import {
   Res,
   UseGuards,
 } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { Throttle } from "@nestjs/throttler";
 import type { Request, Response } from "express";
 import { RegisterDto } from "./dto/register.dto.js";
@@ -18,11 +19,15 @@ import { CurrentUser } from "./decorators/current-user.decorator.js";
 
 @Controller("auth")
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private configService: ConfigService,
+  ) {}
 
   private getCookieOptions() {
-    const isProd = process.env.NODE_ENV === "production";
-    const domain = process.env.COOKIE_DOMAIN || undefined;
+    const isProd =
+      this.configService.get<string>("app.nodeEnv") === "production";
+    const domain = this.configService.get<string>("cookie.domain") || undefined;
 
     return {
       httpOnly: true,
@@ -30,6 +35,7 @@ export class AuthController {
       sameSite: (isProd ? "none" : "lax") as "none" | "lax",
       path: "/auth/refresh",
       domain,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     };
   }
 

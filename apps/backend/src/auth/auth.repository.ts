@@ -7,6 +7,8 @@ export class AuthRepository implements IAuthRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   findByLogin(login: string) {
-    return this.prisma.user.findUnique({ where: { login } })
+    return this.prisma.user.findFirst({
+      where: { login: { equals: login, mode: 'insensitive' } },
+    })
   }
 }

@@ -12,7 +12,9 @@ export class UsersRepository implements IUsersRepository {
   }
 
   findByLogin(login: string): Promise<User | null> {
-    return this.prisma.user.findUnique({ where: { login } })
+    return this.prisma.user.findFirst({
+      where: { login: { equals: login, mode: 'insensitive' } },
+    })
   }
 
   private findByUserName(userName: string): Promise<User | null> {
