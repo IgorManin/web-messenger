@@ -6,6 +6,7 @@ import {
   ConnectedSocket,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  OnGatewayInit,
 } from '@nestjs/websockets'
 import {
   ForbiddenException,
@@ -16,6 +17,7 @@ import {
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
 import type { Server, Socket } from 'socket.io'
 import { TokenService } from '../token/token.service.js'
 import { CHAT_REPOSITORY } from '../chat/chat.repository.interface.js'
@@ -39,14 +41,8 @@ type ChatNewPayload = {
 
 @UseFilters(GlobalExceptionFilter)
 @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
-@WebSocketGateway({
-  namespace: '/ws',
-  cors: {
-    origin: process.env.ALLOWED_ORIGINS?.split(',').map((s) => s.trim()) ?? true,
-    credentials: true,
-  },
-})
-export class WsGateway implements OnGatewayConnection, OnGatewayDisconnect {
+@WebSocketGateway({ namespace: '/ws' })
+export class WsGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
   @WebSocketServer()
   server!: Server
 
@@ -54,9 +50,17 @@ export class WsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   constructor(
     private readonly tokenService: TokenService,
+    private readonly configService: ConfigService,
     @Inject(CHAT_REPOSITORY) private readonly chatRepository: IChatRepository,
     @Inject(MESSAGE_REPOSITORY) private readonly messageRepository: IMessageRepository,
   ) {}
+
+  afterInit(server: Server) {
+    server.engine.opts.cors = {
+      origin: this.configService.get<string[]>('cors.allowedOrigins'),
+      credentials: true,
+    }
+  }
 
   handleConnection(client: Socket) {
     try {
