@@ -50,6 +50,7 @@ export class UsersController {
     return this.usersService.searchUsers(login, user.id);
   }
 
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
   @Post("avatar")
   @UseInterceptors(
     FileInterceptor("file", {
