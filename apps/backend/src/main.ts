@@ -1,38 +1,38 @@
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module.js';
-import * as dotenv from 'dotenv';
+import { NestFactory } from "@nestjs/core";
+import { AppModule } from "./app.module.js";
+import * as dotenv from "dotenv";
 import { ValidationPipe } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import cookieParser from 'cookie-parser';
-import helmet from 'helmet';
-import { GlobalExceptionFilter } from './common/filters/global-exception.filter.js';
+import cookieParser from "cookie-parser";
+import helmet from "helmet";
+import { GlobalExceptionFilter } from "./common/filters/global-exception.filter.js";
 
 dotenv.config();
 
 async function bootstrap() {
-    const app = await NestFactory.create(AppModule)
+  const app = await NestFactory.create(AppModule);
 
-    const configService = app.get(ConfigService)
-    const allowedOrigins = configService.get<string>('cors.allowedOrigins')!.split(',').map((s) => s.trim())
+  const configService = app.get(ConfigService);
+  const allowedOrigins = configService.get<string[]>("cors.allowedOrigins")!;
 
-    app.use(helmet())
+  app.use(helmet());
 
-    app.enableCors({
-        origin: allowedOrigins,
-        credentials: true,
-    })
+  app.enableCors({
+    origin: allowedOrigins,
+    credentials: true,
+  });
 
-    app.use(cookieParser())
+  app.use(cookieParser());
 
-    app.useGlobalPipes(
-        new ValidationPipe({
-            whitelist: true,
-            transform: true,
-        }),
-    )
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+    }),
+  );
 
-    app.useGlobalFilters(new GlobalExceptionFilter())
+  app.useGlobalFilters(new GlobalExceptionFilter());
 
-    await app.listen(configService.get<number>('app.port')!)
+  await app.listen(configService.get<number>("app.port")!);
 }
-bootstrap()
+bootstrap();

@@ -19,7 +19,7 @@ export default () => ({
     apiSecret: process.env.CLOUDINARY_API_SECRET,
   },
   cors: {
-    allowedOrigins: process.env.ALLOWED_ORIGINS,
+    allowedOrigins: process.env.ALLOWED_ORIGINS?.split(',').map(s => s.trim()) ?? [],
   },
   cookie: {
     domain: process.env.COOKIE_DOMAIN,
