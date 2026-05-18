@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import { ChatService } from "./chat.service.js";
 import { JwtAccessGuard } from "../auth/guards/jwt-access.guard.js";
 import { CurrentUser } from "../auth/decorators/current-user.decorator.js";
@@ -24,6 +25,7 @@ export class ChatController {
     return this.chatService.getChatsForUser(user.id);
   }
 
+  @Throttle({ default: { ttl: 60000, limit: 60 } })
   @Get(":chatId/messages")
   getChatMessages(
     @Param("chatId") chatId: string,
@@ -32,6 +34,7 @@ export class ChatController {
     return this.chatService.getMessagesByChat(chatId, user.id);
   }
 
+  @Throttle({ default: { ttl: 60000, limit: 20 } })
   @Post("direct")
   async createOrGetDirectChat(
     @Body() dto: CreateDirectChatDto,
@@ -45,6 +48,7 @@ export class ChatController {
     return result.chat;
   }
 
+  @Throttle({ default: { ttl: 60000, limit: 20 } })
   @Post("direct/first-message")
   async createDirectFirstMessage(
     @Body() dto: CreateDirectFirstMessageDto,
