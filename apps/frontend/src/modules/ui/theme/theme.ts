@@ -1,6 +1,5 @@
 import { createTheme, Theme } from "@mui/material/styles";
 import { darkPalette, lightPalette } from "./palette.config";
-import { colors } from "./colors";
 
 export function createAppTheme(mode: "light" | "dark"): Theme {
   const palette = mode === "dark" ? darkPalette : lightPalette;
@@ -12,7 +11,7 @@ export function createAppTheme(mode: "light" | "dark"): Theme {
     },
     components: {
       MuiCssBaseline: {
-        styleOverrides: {
+        styleOverrides: (theme) => ({
           "*::-webkit-scrollbar": {
             width: "8px",
           },
@@ -20,20 +19,20 @@ export function createAppTheme(mode: "light" | "dark"): Theme {
             background: "transparent",
           },
           "*::-webkit-scrollbar-thumb": {
-            backgroundColor: colors.interactiveSelected,
+            backgroundColor: theme.palette.interactive?.border,
             borderRadius: "4px",
             border: "2px solid transparent",
             backgroundClip: "padding-box",
           },
           "*::-webkit-scrollbar-thumb:hover": {
-            backgroundColor: colors.paperBorder,
+            backgroundColor: theme.palette.interactive?.selected,
           },
-        },
+        }),
       },
       MuiPaper: {
         styleOverrides: {
           root: ({ theme }) => ({
-            backgroundColor: theme.palette.background.default,
+            backgroundColor: theme.palette.background.paper,
             backgroundImage: "none",
             border: `1px solid ${theme.palette.interactive?.border}`,
           }),
