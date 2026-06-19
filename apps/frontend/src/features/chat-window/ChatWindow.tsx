@@ -36,7 +36,6 @@ export const ChatWindow = () => {
         height: "100%",
         display: "grid",
         gridTemplateRows: "auto 1fr auto",
-        gap: 2,
         minHeight: 0,
       }}
     >

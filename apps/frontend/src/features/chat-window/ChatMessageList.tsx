@@ -47,6 +47,7 @@ export const ChatMessageList = ({
         display: "grid",
         gap: 1,
         justifyContent: "flex-start",
+        border: "none",
       }}
     >
       {isLoading ? (
