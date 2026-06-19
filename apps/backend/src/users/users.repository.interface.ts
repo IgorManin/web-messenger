@@ -5,7 +5,6 @@ export const USERS_REPOSITORY = Symbol('IUsersRepository')
 export type CreateUserData = {
   login: string
   passwordHash: string
-  userName?: string
   email?: string
 }
 
@@ -21,5 +20,4 @@ export interface IUsersRepository {
   createUser(data: CreateUserData): Promise<User>
   updateAvatar(userId: number, avatarUrl: string): Promise<User>
   searchUsers(query: string, currentUserId: number): Promise<UserSearchResult[]>
-  generateUserName(login: string): Promise<string>
 }

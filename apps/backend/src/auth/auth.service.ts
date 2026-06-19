@@ -48,8 +48,7 @@ export class AuthService {
     if (existing) throw new ConflictException('Логин уже занят')
 
     const passwordHash = await bcrypt.hash(password, 10)
-    const userName = await this.usersService.generateUserName(login)
-    const user = await this.usersService.createUser({ login, passwordHash, userName, email })
+    const user = await this.usersService.createUser({ login, passwordHash, email })
 
     const tokens = await this.issueTokens({ id: user.id, login: user.login })
     await this.createSession(user.id, tokens.refreshToken)
@@ -58,7 +57,6 @@ export class AuthService {
       user: {
         id: user.id,
         login: user.login,
-        userName: user.userName,
         createdAt: user.createdAt,
       },
       accessToken: tokens.accessToken,

@@ -1,4 +1,4 @@
-import { ConflictException, Injectable } from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service.js'
 import type { IUsersRepository, CreateUserData, UserSearchResult } from './users.repository.interface.js'
 import type { User } from '@prisma/client'
@@ -15,10 +15,6 @@ export class UsersRepository implements IUsersRepository {
     return this.prisma.user.findFirst({
       where: { login: { equals: login, mode: 'insensitive' } },
     })
-  }
-
-  private findByUserName(userName: string): Promise<User | null> {
-    return this.prisma.user.findUnique({ where: { userName } })
   }
 
   createUser(data: CreateUserData): Promise<User> {
@@ -48,16 +44,4 @@ export class UsersRepository implements IUsersRepository {
     })
   }
 
-  async generateUserName(login: string): Promise<string> {
-    const sanitized = login.replace(/[^a-zA-Zа-яА-ЯёЁ0-9_]/g, '')
-    const base = `@${sanitized}`
-
-    for (let i = 1; i <= 10; i++) {
-      const candidate = i === 1 ? base : `${base}${i}`
-      const taken = await this.findByUserName(candidate)
-      if (!taken) return candidate
-    }
-
-    throw new ConflictException('Не удалось сгенерировать уникальный userName')
-  }
 }
