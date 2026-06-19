@@ -7,6 +7,7 @@ import {
   Paper,
   Typography,
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import { useEffect, useRef } from "react";
 import { ChatItem, MessageDto } from "@shared/modules/chat/model/types";
 import { CurrentUser } from "@shared/modules/user/model/types";
@@ -27,6 +28,7 @@ export const ChatMessageList = ({
   myUser,
   activeChat,
 }: ChatMessageListProps) => {
+  const theme = useTheme();
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -112,7 +114,7 @@ export const ChatMessageList = ({
                         variant="caption"
                         sx={{
                           fontWeight: 600,
-                          color: isMine ? "secondary.main" : "primary.main",
+                          color: "primary.main",
                           mb: 0.25,
                         }}
                       >
@@ -125,25 +127,29 @@ export const ChatMessageList = ({
                         py: 1,
                         borderRadius: 2,
                         maxWidth: 480,
-                        border: "1px solid",
-                        borderColor: "divider",
                         backgroundColor: isMine
-                          ? "rgba(21,69,189,0.15)"
-                          : "#283593",
-                        // "rgba(21,68,189,0.34)",
+                          ? theme.palette.message.mine
+                          : theme.palette.message.other,
                       }}
                     >
                       <Typography
                         variant="body2"
-                        sx={{ whiteSpace: "pre-wrap" }}
+                        sx={{
+                          whiteSpace: "pre-wrap",
+                          color: isMine ? "rgba(255,255,255,0.95)" : "inherit",
+                        }}
                       >
                         {message.text}
                       </Typography>
                       <Typography
                         variant="caption"
-                        color="text.secondary"
                         display="block"
-                        sx={{ mt: 0.25 }}
+                        sx={{
+                          mt: 0.25,
+                          color: isMine
+                            ? "rgba(255,255,255,0.6)"
+                            : "text.secondary",
+                        }}
                       >
                         {new Date(message.createdAt).toLocaleTimeString([], {
                           hour: "2-digit",

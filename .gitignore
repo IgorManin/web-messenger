@@ -7,6 +7,8 @@ dist
 .env
 .env.*
 .DS_Store
+*.tsbuildinfo
+
 
 # --- PRISMA GENERATED FILES ---
 apps/backend/src/generated/
