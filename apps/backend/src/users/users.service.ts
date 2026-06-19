@@ -20,10 +20,6 @@ export class UsersService {
     return safe
   }
 
-  generateUserName(login: string) {
-    return this.usersRepository.generateUserName(login)
-  }
-
   createUser(data: CreateUserData) {
     return this.usersRepository.createUser(data)
   }
