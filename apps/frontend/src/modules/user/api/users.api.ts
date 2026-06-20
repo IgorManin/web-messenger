@@ -23,3 +23,10 @@ export const uploadAvatar = (file: File) => {
     body: formData,
   });
 };
+
+export const updateProfile = (data: { login?: string; email?: string }) => {
+  return apiClient<CurrentUser>("/users/me", {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+};

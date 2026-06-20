@@ -32,4 +32,10 @@ export class UsersService {
     const user = await this.usersRepository.updateAvatar(userId, avatarUrl)
     return { id: user.id, login: user.login, avatarUrl: user.avatarUrl }
   }
+
+  async updateProfile(userId: number, data: { login?: string; email?: string }) {
+    const user = await this.usersRepository.updateProfile(userId, data)
+    const { passwordHash, ...safe } = user
+    return safe
+  }
 }

@@ -44,4 +44,11 @@ export class UsersRepository implements IUsersRepository {
     })
   }
 
+  updateProfile(userId: number, data: { login?: string; email?: string }): Promise<User> {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data,
+    })
+  }
+
 }
