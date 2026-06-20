@@ -1,20 +1,15 @@
-import { NestFactory } from "@nestjs/core";
 import * as dotenv from "dotenv";
+dotenv.config();
+
+import { NestFactory } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
-
-dotenv.config();
+import { AppModule } from "./app.module.js";
+import { GlobalExceptionFilter } from "./common/filters/global-exception.filter.js";
 
 async function bootstrap() {
-  // Динамический импорт — гарантирует, что process.env заполнен до того,
-  // как выполнится статическая метадата @WebSocketGateway() внутри AppModule.
-  const { AppModule } = await import("./app.module.js");
-  const { GlobalExceptionFilter } = await import(
-    "./common/filters/global-exception.filter.js"
-  );
-
   const app = await NestFactory.create(AppModule);
 
   const configService = app.get(ConfigService);

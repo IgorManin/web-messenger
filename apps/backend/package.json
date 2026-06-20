@@ -1,7 +1,7 @@
 {
   "name": "@messenger/backend",
   "private": true,
-  "type": "module",
+  "type": "commonjs",
   "scripts": {
     "dev": "nest start --watch",
     "build": "nest build",
