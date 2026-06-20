@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto'
 import { Injectable } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
@@ -19,10 +20,13 @@ export class TokenService {
   }
 
   signRefresh(payload: { sub: number; login: string }): Promise<string> {
-    return this.jwtService.signAsync(payload, {
-      secret: this.config.get<string>('jwt.refreshSecret')!,
-      expiresIn: this.config.get<string>('jwt.refreshExpiresIn') as SignOptions['expiresIn'],
-    })
+    return this.jwtService.signAsync(
+      { ...payload, jti: randomUUID() },
+      {
+        secret: this.config.get<string>('jwt.refreshSecret')!,
+        expiresIn: this.config.get<string>('jwt.refreshExpiresIn') as SignOptions['expiresIn'],
+      },
+    )
   }
 
   verifyAccess(token: string): JwtPayload {

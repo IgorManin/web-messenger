@@ -9,8 +9,7 @@ export class RegisterDto {
   login!: string;
 
   @IsString()
-  //todo поменять потом на 4
-  @MinLength(1, { message: "Пароль должен содержать более 4 символов" })
+  @MinLength(4, { message: "Пароль должен содержать более 4 символов" })
   password!: string;
 
   @IsEmail({}, { message: "Некорректный email" })
