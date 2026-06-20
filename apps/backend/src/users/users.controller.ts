@@ -1,7 +1,9 @@
 import {
   BadRequestException,
+  Body,
   Controller,
   Get,
+  Patch,
   Post,
   Query,
   UploadedFile,
@@ -13,6 +15,7 @@ import { UsersService } from "./users.service.js";
 import { JwtAccessGuard } from "../auth/guards/jwt-access.guard.js";
 import { CurrentUser } from "../auth/decorators/current-user.decorator.js";
 import { SearchUsersDto } from "./dto/search-users.dto.js";
+import { UpdateProfileDto } from "./dto/update-profile.dto.js";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { memoryStorage } from "multer";
 import { CloudinaryService } from "../cloudinary/cloudinary.service.js";
@@ -33,6 +36,14 @@ export class UsersController {
   @Get("me")
   getMe(@CurrentUser() user: CurrentAuthUser) {
     return this.usersService.findById(user.id);
+  }
+
+  @Patch("me")
+  async updateProfile(
+    @CurrentUser() user: CurrentAuthUser,
+    @Body() dto: UpdateProfileDto,
+  ) {
+    return this.usersService.updateProfile(user.id, dto);
   }
 
   @Throttle({ default: { ttl: 60000, limit: 30 } })
