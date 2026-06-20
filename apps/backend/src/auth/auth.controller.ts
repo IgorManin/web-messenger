@@ -15,6 +15,7 @@ import { LoginDto } from "./dto/login.dto.js";
 import { AuthService } from "./auth.service.js";
 import { JwtAccessGuard } from "./guards/jwt-access.guard.js";
 import { JwtRefreshGuard } from "./guards/jwt-refresh.guard.js";
+import { CsrfOriginGuard } from "./guards/csrf-origin.guard.js";
 import { CurrentUser } from "./decorators/current-user.decorator.js";
 
 @Controller("auth")
@@ -71,7 +72,7 @@ export class AuthController {
     return user;
   }
 
-  @UseGuards(JwtRefreshGuard)
+  @UseGuards(CsrfOriginGuard, JwtRefreshGuard)
   @Post("refresh")
   async refresh(
     @CurrentUser() user: any,
