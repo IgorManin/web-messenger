@@ -6,11 +6,20 @@
     "dev": "turbo run dev --parallel",
     "build": "turbo run build",
     "lint": "turbo run lint",
+    "lint:fix": "turbo run lint -- --fix",
     "typecheck": "turbo run typecheck",
-    "format": "prettier -w ."
+    "format": "prettier --write ."
   },
   "devDependencies": {
-    "turbo": "^2.0.0",
-    "prettier": "^3.3.3"
+    "@eslint/js": "^9.38.0",
+    "@typescript-eslint/eslint-plugin": "^8.56.1",
+    "@typescript-eslint/parser": "^8.56.1",
+    "eslint": "^9.38.0",
+    "eslint-config-next": "^16.1.6",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import": "^2.32.0",
+    "globals": "^16.5.0",
+    "prettier": "^3.6.2",
+    "turbo": "^2.0.0"
   }
 }

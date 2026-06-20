@@ -1,10 +1,29 @@
 {
-  "name": "@messenger/frontend",
+  "name": "frontend",
   "private": true,
+  "version": "0.0.1",
   "scripts": {
-    "dev": "echo \"frontend: dev not ready yet\"",
-    "build": "echo \"frontend: noop\"",
-    "lint": "echo \"frontend: noop\"",
-    "typecheck": "echo \"frontend: noop\""
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^7.3.9",
+    "@mui/material": "^7.3.8",
+    "@tanstack/react-query": "^5.90.21",
+    "next": "15.0.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "socket.io-client": "^4.8.3",
+    "zustand": "^5.0.11"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "typescript": "^5.4.0"
   }
 }

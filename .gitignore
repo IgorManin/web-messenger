@@ -1,3 +1,4 @@
+# --- EXISTING RULES ---
 node_modules
 .pnpm-store
 dist
@@ -6,3 +7,32 @@ dist
 .env
 .env.*
 .DS_Store
+*.tsbuildinfo
+
+
+# --- PRISMA GENERATED FILES ---
+apps/backend/src/generated/
+apps/backend/src/generated/prisma/
+apps/backend/prisma/migrations/*-shadow/
+
+# --- CACHE/BUILD BY NEXT ---
+apps/frontend/.next/
+apps/frontend/out/
+
+# Turborepo local cache
+.turbo/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS files
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# CloudeCode
+CLAUDE.md

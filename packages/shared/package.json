@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "echo \"shared: noop\"",
-    "lint": "echo \"shared: noop\"",
-    "typecheck": "echo \"shared: noop\""
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   }
 }
