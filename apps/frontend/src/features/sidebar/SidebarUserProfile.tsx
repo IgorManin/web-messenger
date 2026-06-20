@@ -1,4 +1,4 @@
-import { Avatar, Box, Typography } from "@mui/material";
+import { Avatar, Box, Typography, useMediaQuery, useTheme } from "@mui/material";
 import { CurrentUser } from "@shared/modules/user/model/types";
 
 interface SidebarUserProfileProps {
@@ -6,6 +6,8 @@ interface SidebarUserProfileProps {
 }
 
 export const SidebarUserProfile = ({ user }: SidebarUserProfileProps) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const initials = user?.login?.slice(0, 2).toUpperCase() ?? "";
 
   return (
@@ -16,6 +18,7 @@ export const SidebarUserProfile = ({ user }: SidebarUserProfileProps) => {
         display: "flex",
         alignItems: "center",
         gap: 1.5,
+        justifyContent: isMobile ? "center" : undefined,
       }}
     >
       <Avatar src={user?.avatarUrl ?? undefined}>{initials}</Avatar>
