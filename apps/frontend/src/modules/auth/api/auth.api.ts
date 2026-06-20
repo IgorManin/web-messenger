@@ -1,4 +1,8 @@
-import { AuthTokensResponse, LoginDto, RegisterDto } from "@/modules/auth/types";
+import {
+  AuthTokensResponse,
+  LoginDto,
+  RegisterDto,
+} from "@/modules/auth/types";
 import { apiClient } from "@/shared/api/apiClient";
 
 export const authApi = {

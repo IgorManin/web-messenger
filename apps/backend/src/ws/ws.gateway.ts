@@ -16,7 +16,6 @@ import {
   UsePipes,
   ValidationPipe,
 } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
 import type { Server, Socket } from "socket.io";
 import { TokenService } from "../token/token.service.js";
 import { CHAT_REPOSITORY } from "../chat/chat.repository.interface.js";
@@ -38,12 +37,15 @@ type ChatNewPayload = {
   } | null;
 };
 
+const allowedOrigins =
+  process.env.ALLOWED_ORIGINS?.split(",").map((s) => s.trim()) ?? [];
+
 @UseFilters(GlobalExceptionFilter)
 @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 @WebSocketGateway({
   namespace: "/ws",
   cors: {
-    origin: ["http://localhost:3000"],
+    origin: allowedOrigins,
     credentials: true,
   },
 })

@@ -40,6 +40,7 @@ export const ChatSidebar = () => {
 
   return (
     <Paper
+      variant="outlined"
       sx={{
         height: "100%",
         display: "grid",
