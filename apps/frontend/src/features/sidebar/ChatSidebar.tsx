@@ -3,7 +3,7 @@
 import { Box, InputAdornment, Paper, TextField } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import { useChatSidebar } from "@/modules/chat/hooks/useChatSidebar";
-import { useCurrentUser } from "@/modules/user/hooks/useCurrentUser";
+import { useUserStore } from "@/modules/user/store/user.store";
 import { useUserSearch } from "@/modules/user/hooks/useUserSearch";
 import { SidebarUserProfile } from "@/features/sidebar/SidebarUserProfile";
 import { ChatList } from "@/features/sidebar/ChatList";
@@ -19,7 +19,7 @@ export const ChatSidebar = () => {
     handleSelectUser,
   } = useChatSidebar();
 
-  const { user } = useCurrentUser();
+  const user = useUserStore((state) => state.user);
 
   const {
     search,
