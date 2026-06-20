@@ -14,7 +14,7 @@ export default function ChatPage() {
     return (
       <Box
         sx={{
-          height: "calc(100vh - 64px)",
+          height: "100vh",
           display: "grid",
           p: 2,
         }}
@@ -27,7 +27,7 @@ export default function ChatPage() {
   return (
     <Box
       sx={{
-        height: "calc(100vh - 64px)",
+        height: "100vh",
         display: "grid",
         gridTemplateColumns: "320px 1fr",
         gap: 2,
