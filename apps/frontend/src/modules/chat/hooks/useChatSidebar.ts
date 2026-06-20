@@ -3,6 +3,7 @@ import { useChatStore } from "../store/chat.store";
 import { loadChatsAction } from "../actions/loadChats.action";
 import { UserSearchResult } from "@shared/modules/user/model/types";
 import { selectUserAction } from "../actions/selectUser.action";
+import { useUiStore } from "@/modules/ui/store/ui.store";
 
 export function useChatSidebar() {
   const chats = useChatStore((state) => state.chats);
@@ -10,13 +11,19 @@ export function useChatSidebar() {
   const activeChatId = useChatStore((state) => state.activeChatId);
   const isChatsLoading = useChatStore((state) => state.isChatsLoading);
   const chatsError = useChatStore((state) => state.chatsError);
-  const setActiveChatId = useChatStore((state) => state.setActiveChatId);
+  const setActiveChatIdInStore = useChatStore((state) => state.setActiveChatId);
+  const openMobileChat = useUiStore((state) => state.openMobileChat);
 
   useEffect(() => {
     void loadChatsAction();
   }, []);
 
   const sidebarChats = draftChat ? [draftChat, ...chats] : chats;
+
+  const setActiveChatId = (chatId: string | null) => {
+    setActiveChatIdInStore(chatId);
+    openMobileChat();
+  };
 
   const handleSelectUser = (user: UserSearchResult) => {
     selectUserAction(user);
