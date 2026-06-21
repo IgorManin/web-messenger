@@ -3,7 +3,7 @@ import { useUserStore } from "@/modules/user/store/user.store";
 import { MessageDto } from "@shared/modules/chat/model/types";
 
 export function handleIncomingMessageAction(message: MessageDto) {
-  const { activeChatId, appendMessage, incrementUnread } =
+  const { activeChatId, appendMessage, incrementUnread, incrementIncomingCount } =
     useChatStore.getState();
   const myUserId = useUserStore.getState().user?.id;
 
@@ -14,5 +14,6 @@ export function handleIncomingMessageAction(message: MessageDto) {
 
   if (isIncoming && isInactiveChat) {
     incrementUnread(message.chatId);
+    incrementIncomingCount();
   }
 }
