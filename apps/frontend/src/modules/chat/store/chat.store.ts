@@ -14,6 +14,7 @@ type ChatStoreState = {
   unreadByChat: Record<string, number>;
   typingByChat: Record<string, boolean>;
   loadedChats: Set<string>;
+  incomingMessageCount: number;
 };
 
 type ChatStoreActions = {
@@ -31,6 +32,7 @@ type ChatStoreActions = {
   resetUnread: (chatId: string) => void;
   setTyping: (chatId: string, isTyping: boolean) => void;
   markChatLoaded: (chatId: string) => void;
+  incrementIncomingCount: () => void;
 };
 
 type ChatStore = ChatStoreState & ChatStoreActions;
@@ -47,6 +49,7 @@ const initialState: ChatStoreState = {
   unreadByChat: {},
   typingByChat: {},
   loadedChats: new Set<string>(),
+  incomingMessageCount: 0,
 };
 
 export const useChatStore = create<ChatStore>((set) => ({
@@ -135,5 +138,10 @@ export const useChatStore = create<ChatStore>((set) => ({
   markChatLoaded: (chatId) =>
     set((state) => ({
       loadedChats: new Set([...state.loadedChats, chatId]),
+    })),
+
+  incrementIncomingCount: () =>
+    set((state) => ({
+      incomingMessageCount: state.incomingMessageCount + 1,
     })),
 }));
