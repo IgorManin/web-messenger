@@ -152,6 +152,7 @@ export default function ProfilePage() {
       </Box>
 
       <TextField
+        label="Логин"
         value={login}
         onChange={(e) => {
           setLogin(e.target.value);
@@ -161,6 +162,7 @@ export default function ProfilePage() {
       />
 
       <TextField
+        label="Email"
         type="email"
         value={email}
         onChange={(e) => {
