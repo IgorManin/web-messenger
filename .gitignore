@@ -19,6 +19,12 @@ apps/backend/prisma/migrations/*-shadow/
 apps/frontend/.next/
 apps/frontend/out/
 
+# --- PWA GENERATED FILES (@ducanh2912/next-pwa) ---
+apps/frontend/public/sw.js
+apps/frontend/public/sw.js.map
+apps/frontend/public/workbox-*.js
+apps/frontend/public/workbox-*.js.map
+
 # Turborepo local cache
 .turbo/
 
