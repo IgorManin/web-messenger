@@ -1,6 +1,7 @@
 import { Providers } from "./providers";
 
 export const metadata = {
+  manifest: "/manifest.json",
   icons: {
     icon: "/favicon.png",
   },

@@ -1,4 +1,4 @@
-import { IsEmail, IsOptional, IsString, MinLength } from "class-validator";
+import { IsBoolean, IsEmail, IsOptional, IsString, MinLength } from "class-validator";
 
 export class UpdateProfileDto {
   @IsString()
@@ -11,4 +11,8 @@ export class UpdateProfileDto {
   @IsEmail({}, { message: "Некорректный email" })
   @IsOptional()
   email?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  notificationsEnabled?: boolean;
 }

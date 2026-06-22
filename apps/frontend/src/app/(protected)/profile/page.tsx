@@ -4,7 +4,9 @@ import {
   Avatar,
   Box,
   Button,
+  FormControlLabel,
   IconButton,
+  Switch,
   TextField,
   Typography,
   useTheme,
@@ -26,7 +28,11 @@ export default function ProfilePage() {
 
   const [login, setLogin] = useState(user?.login ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
+  const [notificationsEnabled, setNotificationsEnabled] = useState(
+    user?.notificationsEnabled ?? true,
+  );
   const [isSaving, setIsSaving] = useState(false);
+  const [isSavingNotifications, setIsSavingNotifications] = useState(false);
   const [error, setError] = useState("");
   const [avatarError, setAvatarError] = useState("");
 
@@ -34,6 +40,7 @@ export default function ProfilePage() {
     if (user) {
       setLogin(user.login);
       setEmail(user.email ?? "");
+      setNotificationsEnabled(user.notificationsEnabled);
     }
   }, [user]);
 
@@ -87,6 +94,23 @@ export default function ProfilePage() {
     setIsSaving(false);
 
     if (!result.success) {
+      setError(result.error ?? "Не удалось обновить профиль");
+    }
+  };
+
+  const handleNotificationsToggle = async (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
+    const value = event.target.checked;
+    setNotificationsEnabled(value);
+    setIsSavingNotifications(true);
+
+    const result = await updateProfileAction({ notificationsEnabled: value });
+
+    setIsSavingNotifications(false);
+
+    if (!result.success) {
+      setNotificationsEnabled(!value);
       setError(result.error ?? "Не удалось обновить профиль");
     }
   };
@@ -170,6 +194,18 @@ export default function ProfilePage() {
           setError("");
         }}
         autoComplete="off"
+      />
+
+      <FormControlLabel
+        control={
+          <Switch
+            checked={notificationsEnabled}
+            onChange={handleNotificationsToggle}
+            disabled={isSavingNotifications}
+          />
+        }
+        label="Звуковые уведомления"
+        sx={{ color: theme.palette.text.primary }}
       />
 
       {error && (

@@ -3,6 +3,7 @@ export type CurrentUser = {
   login: string;
   email?: string;
   avatarUrl: string | null;
+  notificationsEnabled: boolean;
   createdAt?: string;
   updatedAt?: string;
 };
