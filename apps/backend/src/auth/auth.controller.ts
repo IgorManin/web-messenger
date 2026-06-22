@@ -33,7 +33,7 @@ export class AuthController {
     return {
       httpOnly: true,
       secure: isProd,
-      sameSite: (isProd ? "none" : "lax") as "none" | "lax",
+      sameSite: "lax" as const,
       path: "/auth/refresh",
       domain,
       maxAge: 7 * 24 * 60 * 60 * 1000,
