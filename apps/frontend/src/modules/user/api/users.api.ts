@@ -24,7 +24,11 @@ export const uploadAvatar = (file: File) => {
   });
 };
 
-export const updateProfile = (data: { login?: string; email?: string }) => {
+export const updateProfile = (data: {
+  login?: string;
+  email?: string;
+  notificationsEnabled?: boolean;
+}) => {
   return apiClient<CurrentUser>("/users/me", {
     method: "PATCH",
     body: JSON.stringify(data),
