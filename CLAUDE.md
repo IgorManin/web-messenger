@@ -222,6 +222,10 @@ palette.avatar      — background, color
 - Typing indicator в `ChatWindowHeader` ("печатает...")
 - MUI тема в стиле macOS Messages — централизованная система цветов через palette + module augmentation, отдельные палитры для message-пузырей
 - Кастомный скроллбар через `MuiCssBaseline`
+- Звуковые уведомления при входящем сообщении (`notification.mp3`, хук `useNotificationSound.ts`)
+- Настройка уведомлений на странице профиля — `Switch`-тоггл, поле `notificationsEnabled` в БД (дефолт `true`)
+- PWA базовая поддержка — `manifest.json`, иконки 192/512, service worker через `@ducanh2912/next-pwa` (отключён в dev)
+- Фикс разлогина при обновлении страницы — guard в `useCurrentUser` по наличию `token` перед загрузкой юзера
 - Деплой: backend на Fly.io (`messenger-api.fly.dev`), frontend на Vercel (`messenger-web-prod.vercel.app`)
 
 ### Что не реализовано (следующий этап)
@@ -319,3 +323,25 @@ palette.avatar      — background, color
 12. **`refreshTokenAction`** делает fetch напрямую, минуя `apiClient` — это намеренно, чтобы избежать рекурсии в interceptore. Не переписывать через `authApi.refresh()`
 13. **`dotenv.config()` в `main.ts` должен быть первой исполняемой строкой**, до любых импортов модулей приложения — под CommonJS `require()` не хоистится, порядок важен для корректной инициализации `ALLOWED_ORIGINS` и других env в декораторах вроде `@WebSocketGateway()`
 14. **Generated Prisma client** в этой pnpm-монорепе физически лежит в `node_modules/.pnpm/@prisma+client@.../node_modules/.prisma/client` — копировать в Docker нужно весь `node_modules`, а не точечный путь `node_modules/.prisma` (его не существует на верхнем уровне)
+
+## Текущая проблема и план решения
+
+### Проблема: PWA cookie на iOS
+
+Cookie с refresh-токеном не устанавливается в PWA-режиме на iOS. Причина: `sameSite: "none"` блокируется iOS Safari 17+ для cross-site запросов в PWA. Фронт (vercel.app) и бэк (fly.dev) на разных доменах.
+
+### Решение: переезд бэкенда на собственный сервер
+
+Цель — единый домен для фронта и бэка:
+- `yourdomain.com` → фронт
+- `yourdomain.com/api/*` → бэк
+
+При едином домене `sameSite: "lax"` работает корректно в PWA на iOS.
+
+Что нужно сделать:
+- Поднять Docker на рабочей машине
+- Настроить nginx как reverse proxy
+- SSL через Let's Encrypt
+- CI/CD для автодеплоя при пуше в main
+- Перенести бэкенд с Fly.io на свой сервер
+- Обновить `ALLOWED_ORIGINS` и `NEXT_PUBLIC_API_URL`
