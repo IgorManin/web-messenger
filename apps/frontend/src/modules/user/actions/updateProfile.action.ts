@@ -17,6 +17,7 @@ const getErrorMessage = (error: unknown) => {
 export async function updateProfileAction(data: {
   login?: string;
   email?: string;
+  notificationsEnabled?: boolean;
 }): Promise<{ success: boolean; error?: string }> {
   try {
     const updatedUser = await webUserApi.updateProfile(data);
