@@ -9,6 +9,8 @@ import { handleNewChatAction } from "@/modules/chat/actions/handleNewChat.action
 import type { Socket } from "socket.io-client";
 import type {
   ClientToServerEvents,
+  MessageDeliveredEventDto,
+  MessageReadEventDto,
   ServerToClientEvents,
   TypingEventDto,
   UserOfflineEventDto,
@@ -56,11 +58,25 @@ export function useChatSocket(
       useUserStore.getState().setUserOffline(payload.userId, payload.lastSeen);
     };
 
+    const handleMessageDelivered = (payload: MessageDeliveredEventDto) => {
+      useChatStore
+        .getState()
+        .setMessagesStatus(payload.chatId, [payload.messageId], "delivered");
+    };
+
+    const handleMessageRead = (payload: MessageReadEventDto) => {
+      useChatStore
+        .getState()
+        .setMessagesStatus(payload.chatId, payload.messageIds, "read");
+    };
+
     socket.on("message:new", handleMessageNew);
     socket.on("chat:new", handleChatNew);
     socket.on("typing:update", handleTypingUpdate);
     socket.on("user:online", handleUserOnline);
     socket.on("user:offline", handleUserOffline);
+    socket.on("message:delivered", handleMessageDelivered);
+    socket.on("message:read", handleMessageRead);
 
     return () => {
       socket.off("message:new", handleMessageNew);
@@ -68,6 +84,8 @@ export function useChatSocket(
       socket.off("typing:update", handleTypingUpdate);
       socket.off("user:online", handleUserOnline);
       socket.off("user:offline", handleUserOffline);
+      socket.off("message:delivered", handleMessageDelivered);
+      socket.off("message:read", handleMessageRead);
       Object.values(typingTimers).forEach(clearTimeout);
     };
   }, [socket]);

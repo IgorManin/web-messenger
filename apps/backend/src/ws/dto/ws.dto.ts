@@ -29,3 +29,9 @@ export class TypingUpdateDto {
   @IsBoolean()
   isTyping!: boolean
 }
+
+export class ChatReadDto {
+  @IsString()
+  @Transform(({ value }) => String(value))
+  chatId!: string
+}

@@ -32,12 +32,28 @@ export type UserOfflineEventDto = {
   lastSeen?: string;
 };
 
+export type ChatReadDto = {
+  chatId: string;
+};
+
+export type MessageDeliveredEventDto = {
+  messageId: string;
+  chatId: string;
+};
+
+export type MessageReadEventDto = {
+  messageIds: string[];
+  chatId: string;
+};
+
 export type ServerToClientEvents = {
   "message:new": (message: MessageDto) => void;
   "typing:update": (payload: TypingEventDto) => void;
   "chat:new": (chat: ChatItem) => void;
   "user:online": (payload: UserOnlineEventDto) => void;
   "user:offline": (payload: UserOfflineEventDto) => void;
+  "message:delivered": (payload: MessageDeliveredEventDto) => void;
+  "message:read": (payload: MessageReadEventDto) => void;
 };
 
 export interface ClientToServerEvents {
@@ -52,4 +68,6 @@ export interface ClientToServerEvents {
   ) => void;
 
   "typing:update": (payload: TypingUpdateDto) => void;
+
+  "chat:read": (payload: ChatReadDto) => void;
 }

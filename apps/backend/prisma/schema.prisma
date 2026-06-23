@@ -65,11 +65,12 @@ model ChatParticipant {
 }
 
 model Message {
-  id              String   @id @default(cuid())
+  id              String        @id @default(cuid())
   clientMessageId String?
   chatId          String
   authorId        Int
   text            String
+  status          MessageStatus @default(sent)
 
   chat            Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
   author          User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
@@ -83,4 +84,10 @@ model Message {
 enum ChatType {
   direct
   group
+}
+
+enum MessageStatus {
+  sent
+  delivered
+  read
 }

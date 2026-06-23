@@ -26,7 +26,12 @@ import { USERS_REPOSITORY } from "../users/users.repository.interface.js";
 import type { IUsersRepository } from "../users/users.repository.interface.js";
 import { RedisService } from "../redis/redis.service.js";
 import { GlobalExceptionFilter } from "../common/filters/global-exception.filter.js";
-import { ChatJoinDto, SendMessageDto, TypingUpdateDto } from "./dto/ws.dto.js";
+import {
+  ChatJoinDto,
+  ChatReadDto,
+  SendMessageDto,
+  TypingUpdateDto,
+} from "./dto/ws.dto.js";
 
 const OFFLINE_GRACE_PERIOD_MS = 10_000;
 
@@ -240,6 +245,7 @@ export class WsGateway implements OnGatewayConnection, OnGatewayDisconnect {
           authorId: String(existingMessage.authorId),
           text: existingMessage.text,
           createdAt: existingMessage.createdAt.toISOString(),
+          status: existingMessage.status,
         };
 
         client
@@ -262,6 +268,25 @@ export class WsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       createdMessage.createdAt,
     );
 
+    let status = createdMessage.status;
+
+    const chat = await this.chatRepository.findById(dto.chatId);
+    const recipientIds =
+      chat?.participants
+        .map((p) => p.userId)
+        .filter((participantId) => participantId !== userId) ?? [];
+
+    const onlineRecipientIds =
+      await this.redisService.filterOnline(recipientIds);
+
+    if (onlineRecipientIds.length > 0) {
+      await this.messageRepository.markDelivered(createdMessage.id);
+      status = "delivered";
+      this.server
+        .to(`user:${userId}`)
+        .emit("message:delivered", { messageId: createdMessage.id, chatId: dto.chatId });
+    }
+
     const message = {
       id: createdMessage.id,
       clientMessageId: createdMessage.clientMessageId ?? "",
@@ -269,11 +294,46 @@ export class WsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       authorId: String(createdMessage.authorId),
       text: createdMessage.text,
       createdAt: createdMessage.createdAt.toISOString(),
+      status,
     };
 
     client.to(`chat:${dto.chatId}`).emit("message:new", message);
 
     return message;
+  }
+
+  @SubscribeMessage("chat:read")
+  async chatRead(
+    @MessageBody() dto: ChatReadDto,
+    @ConnectedSocket() client: Socket,
+  ) {
+    this.ensureAuth(client);
+
+    const userId = this.parseUserId(client);
+
+    await this.ensureChatAccess(dto.chatId, userId);
+
+    const readMessages = await this.messageRepository.markChatAsRead(
+      dto.chatId,
+      userId,
+    );
+
+    if (readMessages.length === 0) return { ok: true };
+
+    const messageIdsByAuthor = new Map<number, string[]>();
+    for (const { id, authorId } of readMessages) {
+      const ids = messageIdsByAuthor.get(authorId) ?? [];
+      ids.push(id);
+      messageIdsByAuthor.set(authorId, ids);
+    }
+
+    for (const [authorId, messageIds] of messageIdsByAuthor) {
+      this.server
+        .to(`user:${authorId}`)
+        .emit("message:read", { messageIds, chatId: dto.chatId });
+    }
+
+    return { ok: true };
   }
 
   @SubscribeMessage("typing:update")

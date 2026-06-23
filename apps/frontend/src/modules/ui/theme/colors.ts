@@ -44,4 +44,8 @@ export const colors = {
 
   // status
   statusOnline: "rgb(52, 199, 89)",
+
+  // message ticks
+  tickPending: "rgba(255,255,255,0.6)",
+  tickRead: "rgb(120, 210, 255)",
 } as const;

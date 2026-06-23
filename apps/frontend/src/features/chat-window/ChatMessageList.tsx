@@ -8,6 +8,8 @@ import {
   Typography,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import DoneIcon from "@mui/icons-material/Done";
+import DoneAllIcon from "@mui/icons-material/DoneAll";
 import { useEffect, useRef } from "react";
 import { ChatItem, MessageDto } from "@shared/modules/chat/model/types";
 import { CurrentUser } from "@shared/modules/user/model/types";
@@ -142,21 +144,52 @@ export const ChatMessageList = ({
                       >
                         {message.text}
                       </Typography>
-                      <Typography
-                        variant="caption"
-                        display="block"
+                      <Box
                         sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "flex-end",
+                          gap: 0.25,
                           mt: 0.25,
-                          color: isMine
-                            ? "rgba(255,255,255,0.6)"
-                            : "text.secondary",
                         }}
                       >
-                        {new Date(message.createdAt).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: isMine
+                              ? "rgba(255,255,255,0.6)"
+                              : "text.secondary",
+                          }}
+                        >
+                          {new Date(message.createdAt).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </Typography>
+                        {isMine &&
+                          (message.status === "read" ? (
+                            <DoneAllIcon
+                              sx={{
+                                fontSize: 16,
+                                color: theme.palette.message.tickRead,
+                              }}
+                            />
+                          ) : message.status === "delivered" ? (
+                            <DoneAllIcon
+                              sx={{
+                                fontSize: 16,
+                                color: theme.palette.message.tickPending,
+                              }}
+                            />
+                          ) : (
+                            <DoneIcon
+                              sx={{
+                                fontSize: 16,
+                                color: theme.palette.message.tickPending,
+                              }}
+                            />
+                          ))}
+                      </Box>
                     </Box>
                   </Box>
                 </Box>
