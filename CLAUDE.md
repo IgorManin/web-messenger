@@ -135,7 +135,7 @@ palette.avatar      — background, color
 Глобальные стили (скроллбар, автофилл) живут в `MuiCssBaseline.styleOverrides` в теме — отдельный `globals.css` не используется.
 
 ### Auth flow
-1. Login/Register → получаем accessToken в body + refreshToken в httpOnly cookie (path: `/auth/refresh`)
+1. Login/Register → получаем accessToken в body + refreshToken в httpOnly cookie (path: `/`)
 2. `useAuthInit` при загрузке приложения вызывает `refreshTokenAction` напрямую через fetch (минуя apiClient)
 3. `apiClient` автоматически подставляет Bearer token из Zustand
 4. При 401 в `apiClient` — interceptor вызывает `refreshTokenAction`, повторяет оригинальный запрос с новым токеном. Если refresh тоже упал — `clear()` + редирект на `/login`
@@ -191,7 +191,7 @@ palette.avatar      — background, color
 - **Rate limiting** — глобальный `ThrottlerGuard` (100/мин) + точечные `@Throttle` на `/auth/register` и `/auth/login` (5/мин), `/users/search` (30/мин), `/users/avatar` (10/мин)
 - **Helmet** — подключён в `main.ts`
 - **Global exception filter** — `common/filters/global-exception.filter.ts`: Prisma-ошибки (P2002 → 409, P2025 → 404, остальное → generic 500) и любые необработанные исключения не отдают стек клиенту; работает и для HTTP, и для WS
-- **Cookie** — `httpOnly`, `secure` в проде, `sameSite: "none"` в проде / `"lax"` в dev, `path: "/auth/refresh"`, `maxAge: 7d`; `clearCookie` при logout использует тот же набор опций — рассинхрона path быть не может
+- **Cookie** — `httpOnly`, `secure` в проде, `sameSite: "lax"` всегда (и в проде, и в dev — после перехода на Vercel rewrite запросы стали same-origin, `"none"` больше не нужен), `path: "/"`, `maxAge: 7d`; `clearCookie` при logout использует тот же набор опций — рассинхрона path быть не может
 - **Пароль** — `@MinLength(4)` на регистрации (todo-комментарий про более низкий лимит убран)
 - **case-insensitive login** — `findByLogin` использует `mode: 'insensitive'`
 - **WS-валидация** — DTO на все три события, `chatId` нормализован, `text` ограничен, `Number(user.id)` защищён от NaN
@@ -263,6 +263,11 @@ palette.avatar      — background, color
 ### Backend — Fly.io
 - **URL:** `messenger-api.fly.dev`
 - **Конфиг:** `apps/backend/fly.toml` — app `messenger-api`, Dockerfile-билд, internal port 3001, health-check на `GET /health` (grace 5s, interval 10s, timeout 2s), `auto_stop_machines`/`auto_start_machines` включены, `min_machines_running = 0`
+- **Деплой запускается из корня монорепо**, не из `apps/backend/`:
+  ```bash
+  fly deploy --config apps/backend/fly.toml
+  ```
+  Dockerfile ожидает build-контекст корня монорепо (копирует `pnpm-workspace.yaml`, `packages/shared` и т.д.) — запуск из `apps/backend/` сломает сборку, так как нужные файлы окажутся вне контекста.
 - **Dockerfile:** многостадийная сборка (`deps` → `build` → `runner`); `prisma generate` выполняется в стадии `deps` (после `pnpm install`, до копирования остального кода) — сгенерированный клиент живёт в pnpm virtual store (`node_modules/.pnpm/@prisma+client@.../node_modules/.prisma/client`) и копируется в `runner` вместе с целым `node_modules`, явный copy конкретного `.prisma`-пути не используется (путь нестабилен из-за хеша в pnpm store)
 - **Env переменные (обязательны для старта, валидируются Joi):**
   - `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`
@@ -274,10 +279,15 @@ palette.avatar      — background, color
 
 ### Frontend — Vercel
 - **URL:** `messenger-web-prod.vercel.app`
-- Next.js деплоится через стандартный Vercel-пайплайн без кастомного конфига (`vercel.json` отсутствует — Next.js на Vercel настраивается из коробки)
+- **`apps/frontend/vercel.json`** — содержит rewrite:
+  ```json
+  { "rewrites": [{ "source": "/api/:path*", "destination": "https://messenger-api.fly.dev/:path*" }] }
+  ```
+  Фронт ходит на бэк через `/api/*` — с точки зрения браузера это same-origin запрос к `messenger-web-prod.vercel.app`, Vercel проксирует его на Fly.io на своей стороне. Это решает проблему с cookie на десктопе (раньше прямой кросс-доменный запрос на `fly.dev` требовал `sameSite: "none"` и при иных обстоятельствах cookie не долетала).
+  Важно: rewrites из `vercel.json` работают **только** на платформе Vercel (или через `vercel dev`) — обычный `next dev`/`next start` их не применяет; в `next.config.mjs` дублирующего `async rewrites()` нет.
 - **Env переменные:**
-  - `NEXT_PUBLIC_API_URL` — должен указывать на `https://messenger-api.fly.dev`
-  - `NEXT_PUBLIC_WS_URL` — WebSocket-адрес того же backend (`/ws` namespace)
+  - `NEXT_PUBLIC_API_URL` — `/api` (не прямой URL на `fly.dev` — см. rewrite выше)
+  - `NEXT_PUBLIC_WS_URL` — WebSocket-адрес backend напрямую (`/ws` namespace), rewrite на WS не распространяется, остаётся прямым кросс-доменным подключением на `fly.dev`
 
 ### CI
 - `.github/workflows/ci.yml` — Node 20, pnpm 10.14.0; на push в `main`/`develop`/`feature/*`/`chore/*` и PR в `main`/`develop` гоняет `lint`, `typecheck`, `build` через Turborepo
@@ -324,24 +334,8 @@ palette.avatar      — background, color
 13. **`dotenv.config()` в `main.ts` должен быть первой исполняемой строкой**, до любых импортов модулей приложения — под CommonJS `require()` не хоистится, порядок важен для корректной инициализации `ALLOWED_ORIGINS` и других env в декораторах вроде `@WebSocketGateway()`
 14. **Generated Prisma client** в этой pnpm-монорепе физически лежит в `node_modules/.pnpm/@prisma+client@.../node_modules/.prisma/client` — копировать в Docker нужно весь `node_modules`, а не точечный путь `node_modules/.prisma` (его не существует на верхнем уровне)
 
-## Текущая проблема и план решения
+## PWA cookie — решено
 
-### Проблема: PWA cookie на iOS
+`apps/frontend/vercel.json` проксирует `/api/*` на `messenger-api.fly.dev` — запросы с фронта стали same-origin с точки зрения браузера. Заодно `sameSite` на бэке переведён с `(isProd ? "none" : "lax")` на всегда `"lax"`, а cookie `path` — с `/auth/refresh` на `/` (Vercel proxy меняет путь запроса на `/api/auth/refresh`, и браузер не находил cookie по старому узкому path).
 
-Cookie с refresh-токеном не устанавливается в PWA-режиме на iOS. Причина: `sameSite: "none"` блокируется iOS Safari 17+ для cross-site запросов в PWA. Фронт (vercel.app) и бэк (fly.dev) на разных доменах.
-
-### Решение: переезд бэкенда на собственный сервер
-
-Цель — единый домен для фронта и бэка:
-- `yourdomain.com` → фронт
-- `yourdomain.com/api/*` → бэк
-
-При едином домене `sameSite: "lax"` работает корректно в PWA на iOS.
-
-Что нужно сделать:
-- Поднять Docker на рабочей машине
-- Настроить nginx как reverse proxy
-- SSL через Let's Encrypt
-- CI/CD для автодеплоя при пуше в main
-- Перенести бэкенд с Fly.io на свой сервер
-- Обновить `ALLOWED_ORIGINS` и `NEXT_PUBLIC_API_URL`
+**PWA на iOS теперь работает.** Cookie устанавливается и сохраняется корректно и на десктопном вебе, и в PWA на iOS.
