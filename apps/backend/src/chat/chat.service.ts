@@ -55,6 +55,7 @@ type CreateDirectFirstMessageResult = {
     authorId: string;
     text: string;
     createdAt: string;
+    status: string;
   };
   createdChat: boolean;
   targetUserId: number;
@@ -134,6 +135,7 @@ export class ChatService {
       authorId: String(message.authorId),
       text: message.text,
       createdAt: message.createdAt.toISOString(),
+      status: message.status,
     }));
   }
 
@@ -280,6 +282,7 @@ export class ChatService {
         authorId: String(message.authorId),
         text: message.text,
         createdAt: message.createdAt.toISOString(),
+        status: message.status,
       },
     };
   }

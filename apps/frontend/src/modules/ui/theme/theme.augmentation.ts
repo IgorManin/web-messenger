@@ -13,6 +13,8 @@ declare module "@mui/material/styles" {
     message: {
       mine: string;
       other: string;
+      tickPending: string;
+      tickRead: string;
     };
     avatar: {
       background: string;
@@ -35,6 +37,8 @@ declare module "@mui/material/styles" {
     message?: {
       mine?: string;
       other?: string;
+      tickPending?: string;
+      tickRead?: string;
     };
     avatar?: {
       background?: string;

@@ -11,6 +11,8 @@ export type ChatItem = {
   companion: UserSearchResult | null;
 };
 
+export type MessageStatus = "sent" | "delivered" | "read";
+
 export type MessageDto = {
   id: string;
   chatId: string;
@@ -18,6 +20,7 @@ export type MessageDto = {
   authorId: string;
   createdAt: string;
   clientMessageId: string | null;
+  status: MessageStatus;
 };
 
 export type CreateDirectFirstMessageResponse = {

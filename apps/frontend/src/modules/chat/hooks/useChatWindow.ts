@@ -22,7 +22,7 @@ export function useChatWindow() {
   const messages =
     activeChatId && !isDraft ? (messagesByChat[activeChatId] ?? []) : [];
 
-  const { sendMessage, notifyTyping } = useWsMessages({
+  const { sendMessage, notifyTyping, markChatRead } = useWsMessages({
     chatId: isDraft ? "" : (activeChatId ?? ""),
   });
 
@@ -30,7 +30,8 @@ export function useChatWindow() {
     if (!activeChatId) return;
     if (isDraft) return;
     void loadMessagesAction(activeChatId);
-  }, [activeChatId, isDraft]);
+    markChatRead();
+  }, [activeChatId, isDraft, markChatRead]);
 
   const handleSendMessage = async (text: string) => {
     const value = text.trim();
