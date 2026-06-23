@@ -63,6 +63,14 @@ export const useWsMessages = ({ chatId }: UseWsMessagesParams) => {
     }, 1200);
   }, [chatId, sendTyping]);
 
+  const markChatRead = useCallback(() => {
+    const socket = getSocket();
+
+    if (!socket || !chatId) return;
+
+    socket.emit("chat:read", { chatId });
+  }, [chatId]);
+
   useEffect(() => {
     return () => {
       if (typingTimeoutRef.current) {
@@ -71,5 +79,5 @@ export const useWsMessages = ({ chatId }: UseWsMessagesParams) => {
     };
   }, []);
 
-  return { sendMessage, notifyTyping, sendTyping };
+  return { sendMessage, notifyTyping, sendTyping, markChatRead };
 };

@@ -14,6 +14,7 @@ import { ChatItem } from "@shared/modules/chat/model/types";
 import { DraftDirectChat } from "@/modules/chat/model/types";
 import { useChatStore } from "@/modules/chat/store/chat.store";
 import { useUiStore } from "@/modules/ui/store/ui.store";
+import { useUserStore } from "@/modules/user/store/user.store";
 
 interface ChatWindowHeaderProps {
   activeChat: ChatItem | DraftDirectChat;
@@ -27,7 +28,20 @@ export const ChatWindowHeader = ({ activeChat }: ChatWindowHeaderProps) => {
   const initials = activeChat.title.slice(0, 2).toUpperCase();
   const typingByChat = useChatStore((state) => state.typingByChat);
   const closeMobileChat = useUiStore((state) => state.closeMobileChat);
+  const onlineUserIds = useUserStore((state) => state.onlineUserIds);
+  const lastSeenByUser = useUserStore((state) => state.lastSeenByUser);
   const isTyping = typingByChat[activeChat.id] ?? false;
+
+  const isCompanionOnline = companion ? onlineUserIds.has(companion.id) : false;
+  const companionLastSeen = companion ? lastSeenByUser[companion.id] : undefined;
+
+  const subtitle = isTyping
+    ? "печатает..."
+    : isCompanionOnline
+      ? "в сети"
+      : companionLastSeen
+        ? `был(а) в сети ${new Date(companionLastSeen).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+        : "";
 
   return (
     <Paper variant="outlined" sx={{ p: 2 }}>
@@ -79,10 +93,10 @@ export const ChatWindowHeader = ({ activeChat }: ChatWindowHeaderProps) => {
               variant="caption"
               color="text.secondary"
               sx={{
-                visibility: isTyping ? "visible" : "hidden",
+                visibility: subtitle ? "visible" : "hidden",
               }}
             >
-              печатает...
+              {subtitle || " "}
             </Typography>
           </Box>
         </Box>

@@ -27,10 +27,15 @@ export const darkPalette: ThemeOptions["palette"] = {
   message: {
     mine: colors.darkMessageMine,
     other: colors.darkMessageOther,
+    tickPending: colors.tickPending,
+    tickRead: colors.tickRead,
   },
   avatar: {
     background: colors.avatarBackground,
     color: colors.avatarColor,
+  },
+  status: {
+    online: colors.statusOnline,
   },
 };
 
@@ -59,9 +64,14 @@ export const lightPalette: ThemeOptions["palette"] = {
   message: {
     mine: colors.lightMessageMine,
     other: colors.lightMessageOther,
+    tickPending: colors.tickPending,
+    tickRead: colors.tickRead,
   },
   avatar: {
     background: colors.avatarBackground,
     color: colors.avatarColor,
+  },
+  status: {
+    online: colors.statusOnline,
   },
 };

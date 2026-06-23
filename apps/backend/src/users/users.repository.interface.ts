@@ -21,4 +21,5 @@ export interface IUsersRepository {
   updateAvatar(userId: number, avatarUrl: string): Promise<User>
   searchUsers(query: string, currentUserId: number): Promise<UserSearchResult[]>
   updateProfile(userId: number, data: { login?: string; email?: string }): Promise<User>
+  updateLastSeen(userId: number, lastSeen: Date): Promise<void>
 }

@@ -33,6 +33,9 @@ apps/frontend/public/workbox-*.js.map
 npm-debug.log*
 pnpm-debug.log*
 
+# Redis local dump
+dump.rdb
+
 # OS files
 Thumbs.db
 

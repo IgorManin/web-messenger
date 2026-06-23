@@ -4,6 +4,7 @@ import { ConfigModule } from "@nestjs/config";
 import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
 import { HealthModule } from "./health.module.js";
 import { PrismaModule } from "./prisma/prisma.module.js";
+import { RedisModule } from "./redis/redis.module.js";
 import { AuthModule } from "./auth/auth.module.js";
 import { WsModule } from "./ws/ws.module.js";
 import { ChatModule } from "./chat/chat.module.js";
@@ -24,6 +25,7 @@ import { validationSchema } from "./config/validation.js";
       },
     ]),
     PrismaModule,
+    RedisModule,
     HealthModule,
     AuthModule,
     WsModule,

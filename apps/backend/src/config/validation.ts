@@ -13,6 +13,7 @@ export const validationSchema = Joi.object({
   JWT_REFRESH_EXPIRES_IN: Joi.string().default("7d"),
 
   DATABASE_URL: Joi.string().required(),
+  REDIS_URL: Joi.string().default("redis://localhost:6379"),
 
   ALLOWED_ORIGINS: Joi.string().required(),
 

@@ -1,5 +1,9 @@
 import { create } from "zustand";
-import { ChatItem, MessageDto } from "@shared/modules/chat/model/types";
+import {
+  ChatItem,
+  MessageDto,
+  MessageStatus,
+} from "@shared/modules/chat/model/types";
 import { DraftDirectChat } from "@/modules/chat/model/types";
 
 type ChatStoreState = {
@@ -33,6 +37,11 @@ type ChatStoreActions = {
   setTyping: (chatId: string, isTyping: boolean) => void;
   markChatLoaded: (chatId: string) => void;
   incrementIncomingCount: () => void;
+  setMessagesStatus: (
+    chatId: string,
+    messageIds: string[],
+    status: MessageStatus,
+  ) => void;
 };
 
 type ChatStore = ChatStoreState & ChatStoreActions;
@@ -144,4 +153,27 @@ export const useChatStore = create<ChatStore>((set) => ({
     set((state) => ({
       incomingMessageCount: state.incomingMessageCount + 1,
     })),
+
+  setMessagesStatus: (chatId, messageIds, status) =>
+    set((state) => {
+      const current = state.messagesByChat[chatId];
+      if (!current) return state;
+
+      const idsSet = new Set(messageIds);
+      const rank: Record<MessageStatus, number> = {
+        sent: 0,
+        delivered: 1,
+        read: 2,
+      };
+
+      const updated = current.map((message) =>
+        idsSet.has(message.id) && rank[status] > rank[message.status]
+          ? { ...message, status }
+          : message,
+      );
+
+      return {
+        messagesByChat: { ...state.messagesByChat, [chatId]: updated },
+      };
+    }),
 }));

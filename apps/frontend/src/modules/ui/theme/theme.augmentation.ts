@@ -13,10 +13,15 @@ declare module "@mui/material/styles" {
     message: {
       mine: string;
       other: string;
+      tickPending: string;
+      tickRead: string;
     };
     avatar: {
       background: string;
       color: string;
+    };
+    status: {
+      online: string;
     };
   }
 
@@ -32,10 +37,15 @@ declare module "@mui/material/styles" {
     message?: {
       mine?: string;
       other?: string;
+      tickPending?: string;
+      tickRead?: string;
     };
     avatar?: {
       background?: string;
       color?: string;
+    };
+    status?: {
+      online?: string;
     };
   }
 }
