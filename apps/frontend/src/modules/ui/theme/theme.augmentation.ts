@@ -18,6 +18,9 @@ declare module "@mui/material/styles" {
       background: string;
       color: string;
     };
+    status: {
+      online: string;
+    };
   }
 
   interface PaletteOptions {
@@ -36,6 +39,9 @@ declare module "@mui/material/styles" {
     avatar?: {
       background?: string;
       color?: string;
+    };
+    status?: {
+      online?: string;
     };
   }
 }

@@ -9,4 +9,5 @@ export interface IChatRepository {
   createDirect(data: CreateDirectChatData): Promise<ChatWithRelations>
   getChatsForUser(userId: number): Promise<ChatWithRelations[]>
   updateTimestamp(chatId: string, timestamp: Date): Promise<void>
+  getCoParticipantUserIds(userId: number): Promise<number[]>
 }

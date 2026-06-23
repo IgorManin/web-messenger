@@ -13,6 +13,9 @@ export default () => ({
   database: {
     url: process.env.DATABASE_URL,
   },
+  redis: {
+    url: process.env.REDIS_URL ?? 'redis://localhost:6379',
+  },
   cloudinary: {
     cloudName: process.env.CLOUDINARY_CLOUD_NAME,
     apiKey: process.env.CLOUDINARY_API_KEY,

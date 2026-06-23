@@ -22,8 +22,13 @@ import { CHAT_REPOSITORY } from "../chat/chat.repository.interface.js";
 import type { IChatRepository } from "../chat/chat.repository.interface.js";
 import { MESSAGE_REPOSITORY } from "../chat/message.repository.interface.js";
 import type { IMessageRepository } from "../chat/message.repository.interface.js";
+import { USERS_REPOSITORY } from "../users/users.repository.interface.js";
+import type { IUsersRepository } from "../users/users.repository.interface.js";
+import { RedisService } from "../redis/redis.service.js";
 import { GlobalExceptionFilter } from "../common/filters/global-exception.filter.js";
 import { ChatJoinDto, SendMessageDto, TypingUpdateDto } from "./dto/ws.dto.js";
+
+const OFFLINE_GRACE_PERIOD_MS = 10_000;
 
 type ChatNewPayload = {
   id: string;
@@ -55,14 +60,19 @@ export class WsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   private readonly logger = new Logger(WsGateway.name);
 
+  private readonly socketsByUser = new Map<number, Set<string>>();
+  private readonly offlineTimers = new Map<number, NodeJS.Timeout>();
+
   constructor(
     private readonly tokenService: TokenService,
     @Inject(CHAT_REPOSITORY) private readonly chatRepository: IChatRepository,
     @Inject(MESSAGE_REPOSITORY)
     private readonly messageRepository: IMessageRepository,
+    @Inject(USERS_REPOSITORY) private readonly usersRepository: IUsersRepository,
+    private readonly redisService: RedisService,
   ) {}
 
-  handleConnection(client: Socket) {
+  async handleConnection(client: Socket) {
     try {
       const token = this.extractToken(client);
       if (!token) {
@@ -71,13 +81,25 @@ export class WsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
 
       const payload = this.tokenService.verifyAccess(token);
+      const userId = parseInt(String(payload.sub), 10);
+
+      if (isNaN(userId)) {
+        client.disconnect(true);
+        return;
+      }
 
       client.data.user = { id: payload.sub, login: payload.login };
 
       client.join(`user:${payload.sub}`);
 
       this.logger.log(`WS connected: socket=${client.id}, user=${payload.sub}`);
-    } catch {
+
+      await this.markUserOnline(userId, client);
+    } catch (err) {
+      this.logger.error(
+        "handleConnection failed",
+        err instanceof Error ? err.stack : String(err),
+      );
       client.disconnect(true);
     }
   }
@@ -87,6 +109,83 @@ export class WsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.logger.log(
       `WS disconnected: socket=${client.id}, user=${userId ?? "unknown"}`,
     );
+
+    if (userId === undefined) return;
+
+    const parsedUserId = parseInt(String(userId), 10);
+    if (isNaN(parsedUserId)) return;
+
+    this.scheduleOfflineCheck(parsedUserId, client);
+  }
+
+  private async markUserOnline(userId: number, client: Socket) {
+    const sockets = this.socketsByUser.get(userId) ?? new Set<string>();
+    const wasOffline = sockets.size === 0;
+    sockets.add(client.id);
+    this.socketsByUser.set(userId, sockets);
+
+    const pendingOfflineTimer = this.offlineTimers.get(userId);
+    if (pendingOfflineTimer) {
+      clearTimeout(pendingOfflineTimer);
+      this.offlineTimers.delete(userId);
+      return;
+    }
+
+    if (!wasOffline) return;
+
+    await this.redisService.setOnline(userId);
+
+    const coParticipantIds =
+      await this.chatRepository.getCoParticipantUserIds(userId);
+
+    for (const participantId of coParticipantIds) {
+      this.server
+        .to(`user:${participantId}`)
+        .emit("user:online", { userId });
+    }
+
+    const onlineCoParticipantIds =
+      await this.redisService.filterOnline(coParticipantIds);
+
+    for (const onlineUserId of onlineCoParticipantIds) {
+      client.emit("user:online", { userId: onlineUserId });
+    }
+  }
+
+  private scheduleOfflineCheck(userId: number, client: Socket) {
+    const sockets = this.socketsByUser.get(userId);
+    sockets?.delete(client.id);
+
+    if (sockets && sockets.size > 0) return;
+
+    const timer = setTimeout(() => {
+      void this.finalizeOffline(userId);
+    }, OFFLINE_GRACE_PERIOD_MS);
+
+    this.offlineTimers.set(userId, timer);
+  }
+
+  private async finalizeOffline(userId: number) {
+    this.offlineTimers.delete(userId);
+
+    const sockets = this.socketsByUser.get(userId);
+    if (sockets && sockets.size > 0) return;
+
+    this.socketsByUser.delete(userId);
+
+    const lastSeen = new Date();
+    await this.redisService.clearOnline(userId);
+    await this.usersRepository.updateLastSeen(userId, lastSeen);
+
+    const coParticipantIds =
+      await this.chatRepository.getCoParticipantUserIds(userId);
+
+    for (const participantId of coParticipantIds) {
+      this.server.to(`user:${participantId}`).emit("user:offline", {
+        userId,
+        lastSeen: lastSeen.toISOString(),
+      });
+    }
   }
 
   notifyChatCreated(userId: number, chat: ChatNewPayload) {

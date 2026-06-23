@@ -23,10 +23,21 @@ export type TypingEventDto = {
   isTyping: boolean;
 };
 
+export type UserOnlineEventDto = {
+  userId: number;
+};
+
+export type UserOfflineEventDto = {
+  userId: number;
+  lastSeen?: string;
+};
+
 export type ServerToClientEvents = {
   "message:new": (message: MessageDto) => void;
   "typing:update": (payload: TypingEventDto) => void;
   "chat:new": (chat: ChatItem) => void;
+  "user:online": (payload: UserOnlineEventDto) => void;
+  "user:offline": (payload: UserOfflineEventDto) => void;
 };
 
 export interface ClientToServerEvents {

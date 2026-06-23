@@ -5,7 +5,7 @@
 Полноценный кроссплатформенный мессенджер на стадии активной разработки. Цель — продуктовый проект: веб-версия + мобильное приложение на React Native.
 Автор развивает его как настоящий продукт, параллельно прокачивая fullstack-навыки.
 
-**Текущий этап:** MVP задеплоен в прод (Fly.io + Vercel). Backend прошёл полный аудит безопасности — все критические и большинство высокоприоритетных пунктов закрыты. Следующий этап — страница профиля, поле userName, мобильное приложение.
+**Текущий этап:** MVP задеплоен в прод (Fly.io + Vercel). Backend прошёл полный аудит безопасности — все критические и большинство высокоприоритетных пунктов закрыты. Страница профиля реализована (email, аватар, уведомления), добавлен онлайн/оффлайн статус пользователей через Redis. Следующий этап — поле userName, групповые чаты, мобильное приложение.
 
 ## Стек
 
@@ -14,6 +14,7 @@
 - **Frontend:** Next.js 15.5.19 + React 18.3.1 + MUI 7.3.8 + Zustand 5.0.11 + TanStack Query 5.90.21 (apps/frontend)
 - **Shared:** packages/shared — платформо-независимая логика (типы, контракты API, сервисы)
 - **БД:** PostgreSQL (Neon), ORM — Prisma 7.1.0 (адаптер `@prisma/adapter-pg`)
+- **Redis:** ioredis — хранение онлайн-статусов пользователей
 - **Realtime:** Socket.IO 4.8.x (через `@nestjs/websockets` + `@nestjs/platform-socket.io`)
 - **Файлы:** Cloudinary (аватары)
 - **Auth:** JWT (access 15min + refresh 7d в httpOnly cookie), Session-таблица с reuse detection
@@ -70,7 +71,7 @@ web-messenger/
 
 ## Схема базы данных (Prisma)
 
-- **User** — id (autoincrement Int), login (unique), passwordHash, avatarUrl?, email? (unique, опционально)
+- **User** — id (autoincrement Int), login (unique), passwordHash, avatarUrl?, email? (unique, опционально), notificationsEnabled (Boolean, default true), lastSeen? (DateTime, обновляется при WS disconnect)
 - **Session** — id (cuid), userId (FK → User, cascade), tokenHash (unique, SHA-256 хеш refresh-токена), used (Boolean, флаг reuse detection), expiresAt; индекс по userId
 - **Chat** — id (cuid), title, type (direct | group), directChatKey? (unique, формат "minId:maxId")
 - **ChatParticipant** — связь User ↔ Chat, unique constraint [chatId, userId], индексы по userId и chatId
@@ -135,7 +136,7 @@ palette.avatar      — background, color
 Глобальные стили (скроллбар, автофилл) живут в `MuiCssBaseline.styleOverrides` в теме — отдельный `globals.css` не используется.
 
 ### Auth flow
-1. Login/Register → получаем accessToken в body + refreshToken в httpOnly cookie (path: `/auth/refresh`)
+1. Login/Register → получаем accessToken в body + refreshToken в httpOnly cookie (path: `/`)
 2. `useAuthInit` при загрузке приложения вызывает `refreshTokenAction` напрямую через fetch (минуя apiClient)
 3. `apiClient` автоматически подставляет Bearer token из Zustand
 4. При 401 в `apiClient` — interceptor вызывает `refreshTokenAction`, повторяет оригинальный запрос с новым токеном. Если refresh тоже упал — `clear()` + редирект на `/login`
@@ -175,6 +176,18 @@ palette.avatar      — background, color
 - `handleIncomingMessageAction` — обрабатывает входящее сообщение: `appendMessage` + `incrementUnread` если чат неактивный и сообщение чужое
 - `GlobalExceptionFilter` обрабатывает и WS-исключения — клиенту приходит `{ statusCode, message }` через `client.emit('error')`, без утечки стека
 
+### Онлайн-статус
+- **Redis** — ключ `online:{userId}` (TTL 24ч как страховка от не убранного ключа при крэше процесса; реального "источника правды" по живости соединения он не заменяет — это in-memory `Map<userId, Set<socketId>>` в `WsGateway`)
+- **Подключение** — на первом сокете юзера (если ни одного активного соединения не было) пишем ключ в Redis и рассылаем `user:online` всем co-участникам его чатов (через `chatRepository.getCoParticipantUserIds`, broadcast в комнаты `user:{participantId}`)
+- **Отключение** — `grace period` 10 секунд (`setTimeout`) перед тем как считать юзера оффлайн — спасает от ложных оффлайнов при коротком переподключении (reload страницы, временный обрыв сети). Если в течение grace period юзер переподключился — таймер отменяется, `user:offline` не рассылается
+- По истечении grace period без реконнекта: ключ удаляется из Redis, `lastSeen` пишется в БД (`usersRepository.updateLastSeen`), всем co-участникам рассылается `user:offline` с `{ userId, lastSeen }`
+- **Начальное состояние при коннекте** — сразу после подключения сервер дополнительно проверяет через Redis `MGET`, кто из co-участников уже онлайн, и шлёт `user:online` точечно подключившемуся клиенту (не broadcast) — иначе фронт узнавал бы о уже-онлайн контактах только при их следующем переподключении
+- **WS-события**: `user:online` → `{ userId }`, `user:offline` → `{ userId, lastSeen? }`
+- **Фронт** — `useChatSocket` слушает оба события, пишет в `user.store` (`onlineUserIds: Set<number>`, `lastSeenByUser: Record<number, string>`)
+- **MUI тема** — `palette.status.online` (зелёный, `rgb(52, 199, 89)`), добавлен в `colors.ts`/`palette.config.ts`/`theme.augmentation.ts` по тому же паттерну, что `interactive`/`message`/`avatar`. Отдельного цвета для оффлайн-состояния нет — используется обычный `theme.palette.text.secondary`
+- **`ChatWindowHeader`** — субтайтл с приоритетом: "печатает..." → "в сети" → "был(а) в сети {время}" (если есть `lastSeen`) → пусто
+- **Сайдбар (`ChatList`)** — зелёная точка (8px, `borderRadius: "50%"`) справа от имени собеседника, если он онлайн; без пульсации/анимации
+
 ### Draft-чаты
 - `selectUserAction` — клик на найденного пользователя: если чат есть → открываем, если нет → создаём `DraftDirectChat` в сторе
 - `sendFirstMessageAction` — отправка первого сообщения: создаёт реальный чат на бэке (в транзакции), убирает draft, добавляет чат и сообщение в стор
@@ -191,7 +204,7 @@ palette.avatar      — background, color
 - **Rate limiting** — глобальный `ThrottlerGuard` (100/мин) + точечные `@Throttle` на `/auth/register` и `/auth/login` (5/мин), `/users/search` (30/мин), `/users/avatar` (10/мин)
 - **Helmet** — подключён в `main.ts`
 - **Global exception filter** — `common/filters/global-exception.filter.ts`: Prisma-ошибки (P2002 → 409, P2025 → 404, остальное → generic 500) и любые необработанные исключения не отдают стек клиенту; работает и для HTTP, и для WS
-- **Cookie** — `httpOnly`, `secure` в проде, `sameSite: "none"` в проде / `"lax"` в dev, `path: "/auth/refresh"`, `maxAge: 7d`; `clearCookie` при logout использует тот же набор опций — рассинхрона path быть не может
+- **Cookie** — `httpOnly`, `secure` в проде, `sameSite: "lax"` всегда (и в проде, и в dev — после перехода на Vercel rewrite запросы стали same-origin, `"none"` больше не нужен), `path: "/"`, `maxAge: 7d`; `clearCookie` при logout использует тот же набор опций — рассинхрона path быть не может
 - **Пароль** — `@MinLength(4)` на регистрации (todo-комментарий про более низкий лимит убран)
 - **case-insensitive login** — `findByLogin` использует `mode: 'insensitive'`
 - **WS-валидация** — DTO на все три события, `chatId` нормализован, `text` ограничен, `Number(user.id)` защищён от NaN
@@ -222,17 +235,16 @@ palette.avatar      — background, color
 - Typing indicator в `ChatWindowHeader` ("печатает...")
 - MUI тема в стиле macOS Messages — централизованная система цветов через palette + module augmentation, отдельные палитры для message-пузырей
 - Кастомный скроллбар через `MuiCssBaseline`
+- Онлайн/оффлайн статус пользователей — Redis + grace period 10с на disconnect, `user:online`/`user:offline` события, зелёная точка в сайдбаре, субтайтл "в сети"/"был(а) в сети" в `ChatWindowHeader`
 - Деплой: backend на Fly.io (`messenger-api.fly.dev`), frontend на Vercel (`messenger-web-prod.vercel.app`)
 
 ### Что не реализовано (следующий этап)
 - **Кнопка отправки** — не дизейблится во время отправки. Нужен `isSending` стейт в `useChatWindow`
-- **Поле `userName`** — уникальный никнейм с @ префиксом, был удалён как мёртвый код, нужно спроектировать заново при реализации профиля
-- **Страница профиля** — редактирование email, аватара, (в будущем) userName
+- **Поле `userName`** — уникальный никнейм с @ префиксом, был удалён как мёртвый код, нужно спроектировать заново (страница профиля уже есть, но без него)
 
 ### Что не реализовано (MVP)
 - Редактирование сообщений
 - Статус доставки сообщений
-- Статус онлайн / время последнего визита (`lastSeen` в модели User — миграция + бэк)
 - Групповые чаты
 - Пагинация сообщений (`getMessagesByChat` отдаёт всю историю)
 
@@ -259,10 +271,16 @@ palette.avatar      — background, color
 ### Backend — Fly.io
 - **URL:** `messenger-api.fly.dev`
 - **Конфиг:** `apps/backend/fly.toml` — app `messenger-api`, Dockerfile-билд, internal port 3001, health-check на `GET /health` (grace 5s, interval 10s, timeout 2s), `auto_stop_machines`/`auto_start_machines` включены, `min_machines_running = 0`
+- **Деплой запускается из корня монорепо**, не из `apps/backend/`:
+  ```bash
+  fly deploy --config apps/backend/fly.toml
+  ```
+  Dockerfile ожидает build-контекст корня монорепо (копирует `pnpm-workspace.yaml`, `packages/shared` и т.д.) — запуск из `apps/backend/` сломает сборку, так как нужные файлы окажутся вне контекста.
 - **Dockerfile:** многостадийная сборка (`deps` → `build` → `runner`); `prisma generate` выполняется в стадии `deps` (после `pnpm install`, до копирования остального кода) — сгенерированный клиент живёт в pnpm virtual store (`node_modules/.pnpm/@prisma+client@.../node_modules/.prisma/client`) и копируется в `runner` вместе с целым `node_modules`, явный copy конкретного `.prisma`-пути не используется (путь нестабилен из-за хеша в pnpm store)
 - **Env переменные (обязательны для старта, валидируются Joi):**
   - `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`
   - `DATABASE_URL` (Neon Postgres)
+  - `REDIS_URL` — хранение онлайн-статусов; в Joi-схеме technically optional с дефолтом `redis://localhost:6379` для удобства локального dev, но в проде должен указывать на реальный Redis-инстанс, иначе онлайн-статусы не будут работать между перезапусками процесса
   - `ALLOWED_ORIGINS` (должен включать домен Vercel-фронта)
   - `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
 - **Опциональные env:** `PORT` (default 3001), `NODE_ENV`, `JWT_ACCESS_EXPIRES_IN` (default 15m), `JWT_REFRESH_EXPIRES_IN` (default 7d), `COOKIE_DOMAIN`
@@ -270,10 +288,16 @@ palette.avatar      — background, color
 
 ### Frontend — Vercel
 - **URL:** `messenger-web-prod.vercel.app`
-- Next.js деплоится через стандартный Vercel-пайплайн без кастомного конфига (`vercel.json` отсутствует — Next.js на Vercel настраивается из коробки)
+- **`apps/frontend/vercel.json`** — содержит rewrite:
+  ```json
+  { "rewrites": [{ "source": "/api/:path*", "destination": "https://messenger-api.fly.dev/:path*" }] }
+  ```
+  Фронт ходит на бэк через `/api/*` — с точки зрения браузера это same-origin запрос к `messenger-web-prod.vercel.app`, Vercel проксирует его на Fly.io на своей стороне. Это решает проблему с cookie на десктопе и в PWA (раньше прямой кросс-доменный запрос на `fly.dev` требовал `sameSite: "none"` и cookie не всегда долетала).
+  Важно: rewrites из `vercel.json` работают **только** на платформе Vercel (или через `vercel dev`) — обычный `next dev`/`next start` их не применяет; в `next.config.mjs` дублирующего `async rewrites()` нет.
 - **Env переменные:**
-  - `NEXT_PUBLIC_API_URL` — должен указывать на `https://messenger-api.fly.dev`
-  - `NEXT_PUBLIC_WS_URL` — WebSocket-адрес того же backend (`/ws` namespace)
+  - `NEXT_PUBLIC_API_URL` — `/api` (относительный путь через Vercel rewrite proxy, не прямой URL на `fly.dev`)
+  - `NEXT_PUBLIC_WS_URL` — WebSocket-адрес backend напрямую (`/ws` namespace), rewrite на WS не распространяется, остаётся прямым кросс-доменным подключением на `fly.dev`
+- **PWA:** базовая поддержка добавлена — `manifest.json`, иконки (192/512), service worker через `@ducanh2912/next-pwa` (отключён в dev, генерируется только при `next build`). Cookie с refresh-токеном работает корректно и на десктопном вебе, и в PWA — благодаря Vercel rewrite proxy выше (same-origin запросы вместо кросс-доменных).
 
 ### CI
 - `.github/workflows/ci.yml` — Node 20, pnpm 10.14.0; на push в `main`/`develop`/`feature/*`/`chore/*` и PR в `main`/`develop` гоняет `lint`, `typecheck`, `build` через Turborepo

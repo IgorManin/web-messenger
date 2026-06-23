@@ -32,6 +32,9 @@ export const darkPalette: ThemeOptions["palette"] = {
     background: colors.avatarBackground,
     color: colors.avatarColor,
   },
+  status: {
+    online: colors.statusOnline,
+  },
 };
 
 export const lightPalette: ThemeOptions["palette"] = {
@@ -63,5 +66,8 @@ export const lightPalette: ThemeOptions["palette"] = {
   avatar: {
     background: colors.avatarBackground,
     color: colors.avatarColor,
+  },
+  status: {
+    online: colors.statusOnline,
   },
 };
