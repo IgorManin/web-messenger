@@ -34,7 +34,7 @@ export class AuthController {
       httpOnly: true,
       secure: isProd,
       sameSite: "lax" as const,
-      path: "/auth/refresh",
+      path: "/",
       domain,
       maxAge: 7 * 24 * 60 * 60 * 1000,
     };
