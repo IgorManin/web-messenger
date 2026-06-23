@@ -51,4 +51,11 @@ export class UsersRepository implements IUsersRepository {
     })
   }
 
+  async updateLastSeen(userId: number, lastSeen: Date): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { lastSeen },
+    })
+  }
+
 }

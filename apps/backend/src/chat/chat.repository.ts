@@ -70,4 +70,16 @@ export class ChatRepository implements IChatRepository {
       data: { updatedAt: timestamp },
     })
   }
+
+  async getCoParticipantUserIds(userId: number): Promise<number[]> {
+    const rows = await this.prisma.chatParticipant.findMany({
+      where: {
+        chat: { participants: { some: { userId } } },
+        userId: { not: userId },
+      },
+      select: { userId: true },
+      distinct: ['userId'],
+    })
+    return rows.map((row) => row.userId)
+  }
 }

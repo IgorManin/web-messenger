@@ -41,4 +41,7 @@ export const colors = {
   // avatar
   avatarBackground: "rgb(77, 72, 102)",
   avatarColor: "rgba(255,255,255,0.95)",
+
+  // status
+  statusOnline: "rgb(52, 199, 89)",
 } as const;

@@ -11,6 +11,8 @@ import type {
   ClientToServerEvents,
   ServerToClientEvents,
   TypingEventDto,
+  UserOfflineEventDto,
+  UserOnlineEventDto,
 } from "@/modules/ws/types/ws.types";
 
 export function useChatSocket(
@@ -46,14 +48,26 @@ export function useChatSocket(
       }, 1000);
     };
 
+    const handleUserOnline = (payload: UserOnlineEventDto) => {
+      useUserStore.getState().setUserOnline(payload.userId);
+    };
+
+    const handleUserOffline = (payload: UserOfflineEventDto) => {
+      useUserStore.getState().setUserOffline(payload.userId, payload.lastSeen);
+    };
+
     socket.on("message:new", handleMessageNew);
     socket.on("chat:new", handleChatNew);
     socket.on("typing:update", handleTypingUpdate);
+    socket.on("user:online", handleUserOnline);
+    socket.on("user:offline", handleUserOffline);
 
     return () => {
       socket.off("message:new", handleMessageNew);
       socket.off("chat:new", handleChatNew);
       socket.off("typing:update", handleTypingUpdate);
+      socket.off("user:online", handleUserOnline);
+      socket.off("user:offline", handleUserOffline);
       Object.values(typingTimers).forEach(clearTimeout);
     };
   }, [socket]);
