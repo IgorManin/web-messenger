@@ -95,7 +95,11 @@ export class WsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.logger.log(`WS connected: socket=${client.id}, user=${payload.sub}`);
 
       await this.markUserOnline(userId, client);
-    } catch {
+    } catch (err) {
+      this.logger.error(
+        "handleConnection failed",
+        err instanceof Error ? err.stack : String(err),
+      );
       client.disconnect(true);
     }
   }
